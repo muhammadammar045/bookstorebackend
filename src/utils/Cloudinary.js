@@ -1,8 +1,6 @@
 // src/utils/cloudinary.js
 import { v2 as cloudinary } from 'cloudinary';
 import { extractPublicId } from 'cloudinary-build-url';
-import fs from 'fs';
-import path from 'path';
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -10,13 +8,18 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_SECRET_KEY,
 });
 
-const uploadImageToCloudinary = async (filePath) => {
+const uploadImageToCloudinary = async (fileBuffer, fileName) => {
     try {
-        const uploadedFile = await cloudinary.uploader.upload(filePath, { resource_type: 'auto' });
-        fs.unlinkSync(filePath); // Remove file from disk after upload
+        const uploadedFile = await cloudinary.uploader.upload_stream(
+            { resource_type: 'auto', public_id: fileName },
+            (error, result) => {
+                if (error) throw error;
+                return result;
+            }
+        ).end(fileBuffer);
+
         return uploadedFile;
     } catch (error) {
-        fs.unlinkSync(filePath); // Ensure file is removed in case of error
         console.log(`Cloudinary File Uploading Error ==> ${error.message}`);
         return null;
     }
@@ -25,10 +28,14 @@ const uploadImageToCloudinary = async (filePath) => {
 const deleteImageFromCloudinary = async (fileUrl) => {
     const filePath = extractPublicId(fileUrl);
     try {
-        const deletedFile = await cloudinary.uploader.destroy(filePath, { resource_type: 'image' });
+        const deletedFile = await cloudinary.uploader.destroy(filePath, {
+            resource_type: 'image',
+        });
+
         if (deletedFile.result === 'ok') {
             console.log(`The File is deleted Successfully.`);
         }
+
         return deletedFile;
     } catch (error) {
         console.log(`Cloudinary File Deleting Error ==> ${error.message}`);

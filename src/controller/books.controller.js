@@ -189,8 +189,7 @@ const updateBookThumbnail = async (req, res, next) => {
             throw new ApiError(400, "No file uploaded");
         }
 
-        const filePath = path.resolve('public/temp', file.filename);
-        const uploadedThumbnail = await uploadImageToCloudinary(filePath);
+        const uploadedThumbnail = await uploadImageToCloudinary(file.buffer, file.originalname);
         if (!uploadedThumbnail || !uploadedThumbnail.url) {
             throw new ApiError(500, "Failed to upload thumbnail to Cloudinary");
         }
@@ -211,7 +210,6 @@ const updateBookThumbnail = async (req, res, next) => {
         next(error);
     }
 };
-
 
 export {
     addBook,
