@@ -8,6 +8,8 @@ const addBook = async (req, res) => {
     try {
         const { title, description, price, category } = req.body;
 
+        // console.log(title, description, price, category)
+
         if ([title, description, price, category].some((field) => !field || field.trim() === "")) {
             throw new ApiError(400, "Please fill all the required fields (title, description, price, category)");
         }
