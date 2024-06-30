@@ -167,51 +167,48 @@ const updateBook = async (req, res) => {
     }
 };
 
-const updateBookThumbnail = async (req, res) => {
+const updateBookThumbnail = async (req, res, next) => {
     try {
         const { bookId } = req.params;
 
         if (!bookId) {
-            throw new ApiError(400, "bookId is Required");
+            throw new ApiError(400, "Book ID is required");
         }
 
         const book = await Books.findById(bookId);
-
         if (!book) {
-            throw new ApiError(404, "Book Not Found");
+            throw new ApiError(404, "Book not found");
         }
 
-        const deletedThumbnail = await deleteImageFromCloudinary(book.thumbnail);
-        console.log("Deleted thumbnail:", deletedThumbnail);
-
-        const thumbnailPath = req.file?.path;
-
-        if (!thumbnailPath) {
-            throw new ApiError(400, "Thumbnail Path Not Found");
+        if (book.thumbnail) {
+            await deleteImageFromCloudinary(book.thumbnail);
         }
 
-        const uploadedThumbnail = await uploadImageToCloudinary(thumbnailPath);
+        const file = req.file;
+        if (!file) {
+            throw new ApiError(400, "No file uploaded");
+        }
 
-        if (!uploadedThumbnail.url) {
-            throw new ApiError(400, "Cloudinary Upload Failed");
+        const filePath = path.resolve('public/temp', file.filename);
+        const uploadedThumbnail = await uploadImageToCloudinary(filePath);
+        if (!uploadedThumbnail || !uploadedThumbnail.url) {
+            throw new ApiError(500, "Failed to upload thumbnail to Cloudinary");
         }
 
         const updatedBook = await Books.findByIdAndUpdate(
             bookId,
-            {
-                thumbnail: uploadedThumbnail.url
-            },
-            {
-                new: true
-            }
+            { thumbnail: uploadedThumbnail.url },
+            { new: true }
         );
 
-        return res.status(200).json(
-            new ApiResponse(200, updatedBook, "Book Thumbnail Updated Successfully")
-        );
+        if (!updatedBook) {
+            throw new ApiError(500, "Failed to update book with new thumbnail");
+        }
+
+        return res.status(200).json(new ApiResponse(200, updatedBook, "Book thumbnail updated successfully"));
     } catch (error) {
         console.error("Error updating book thumbnail:", error);
-        throw new ApiError(error.status || 500, error.message || "Error Updating Book Thumbnail");
+        next(error);
     }
 };
 

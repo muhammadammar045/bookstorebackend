@@ -1,21 +1,17 @@
-// multer.js
+// src/middlewares/multer.middleware.js
+import multer from 'multer';
+import path from 'path';
 
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-
+// Define storage configuration
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const uploadPath = path.join(process.cwd(), 'public', 'temp'); // Adjusted for Vercel deployment
-
-        // Ensure directory exists, create if not
-        fs.mkdirSync(uploadPath, { recursive: true });
-
-        cb(null, uploadPath);
+        cb(null, path.resolve('public/temp')); // Use 'public/temp' directory for storage
     },
     filename: function (req, file, cb) {
-        cb(null, file.originalname);
+        cb(null, `${Date.now()}-${file.originalname}`); // Ensure unique filenames
     }
 });
 
-export const uploadOnMulter = multer({ storage });
+const uploadOnMulter = multer({ storage });
+
+export { uploadOnMulter };
