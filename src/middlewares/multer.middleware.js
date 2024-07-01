@@ -1,7 +1,16 @@
-// src/middlewares/multer.middleware.js
 import multer from 'multer';
+import path from 'path';
 
-const storage = multer.memoryStorage(); // Use memory storage
+// Define disk storage configuration
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const tempDir = path.resolve('/tmp'); // Use '/tmp' directory for temporary files
+        cb(null, tempDir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
 
 const uploadOnMulter = multer({ storage });
 
