@@ -3,11 +3,12 @@ import path from 'path';
 
 // Define disk storage configuration
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
+    destination: (file, cb) => {
         const tempDir = path.resolve('/tmp');
+        console.log(tempDir)
         cb(null, tempDir);
     },
-    filename: (req, file, cb) => {
+    filename: (file, cb) => {
         cb(null, `${Date.now()}-${file.originalname}`);
     }
 });
