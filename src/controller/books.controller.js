@@ -3,7 +3,7 @@ import { Books } from "../models/books.model.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import { deleteImageFromCloudinary, uploadImageToCloudinary } from "../utils/Cloudinary.js"
-
+import path from "path"
 const addBook = async (req, res) => {
     try {
         const { title, description, price, category } = req.body;
