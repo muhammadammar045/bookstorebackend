@@ -189,10 +189,17 @@ const updateBookThumbnail = async (req, res, next) => {
             throw new ApiError(400, "No file uploaded");
         }
 
-        const uploadedThumbnail = await uploadImageToCloudinary(file.buffer, file.originalname);
+        const filePath = path.resolve('/tmp', file.filename);
+
+        console.log(`Uploading file from path: ${filePath}`);
+
+        const uploadedThumbnail = await uploadImageToCloudinary(filePath);
+
         if (!uploadedThumbnail || !uploadedThumbnail.url) {
             throw new ApiError(500, "Failed to upload thumbnail to Cloudinary");
         }
+
+        console.log(`File uploaded to Cloudinary: ${uploadedThumbnail.url}`);
 
         const updatedBook = await Books.findByIdAndUpdate(
             bookId,
@@ -204,10 +211,12 @@ const updateBookThumbnail = async (req, res, next) => {
             throw new ApiError(500, "Failed to update book with new thumbnail");
         }
 
+        console.log(`Book thumbnail updated: ${updatedBook.thumbnail}`);
+
         return res.status(200).json(new ApiResponse(200, updatedBook, "Book thumbnail updated successfully"));
     } catch (error) {
         console.error("Error updating book thumbnail:", error);
-        next(error);
+        next(new ApiError(error.statusCode || 500, error.message || "Error updating book thumbnail"));
     }
 };
 
