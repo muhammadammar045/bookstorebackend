@@ -191,7 +191,7 @@ const updateBookThumbnail = async (req, res, next) => {
 
         const filePath = path.resolve('/tmp', file.filename);
 
-        console.log(`Uploading file from path: ${filePath}`);
+        // console.log(`Uploading file from path: ${filePath}`);
 
         const uploadedThumbnail = await uploadImageToCloudinary(filePath);
 
@@ -211,7 +211,7 @@ const updateBookThumbnail = async (req, res, next) => {
             throw new ApiError(500, "Failed to update book with new thumbnail");
         }
 
-        console.log(`Book thumbnail updated: ${updatedBook.thumbnail}`);
+        // console.log(`Book thumbnail updated: ${updatedBook.thumbnail}`);
 
         return res.status(200).json(new ApiResponse(200, updatedBook, "Book thumbnail updated successfully"));
     } catch (error) {

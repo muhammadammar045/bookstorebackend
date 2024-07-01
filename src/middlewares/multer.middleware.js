@@ -4,7 +4,7 @@ import path from 'path';
 // Define disk storage configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const tempDir = path.resolve('/tmp'); // Use '/tmp' directory for temporary files
+        const tempDir = path.resolve('/tmp');
         cb(null, tempDir);
     },
     filename: (req, file, cb) => {
