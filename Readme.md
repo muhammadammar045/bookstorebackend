@@ -1,6 +1,6 @@
 ### Backend `README.md`
 
-````markdown
+```markdown
 # Bookstore Backend
 
 This is the backend of the Bookstore application, built with Node.js, Express, and MongoDB. It provides APIs for managing books, user authentication, and file uploading using Multer and Cloudinary.
@@ -31,11 +31,4 @@ To get started with the backend of the Bookstore application, follow these steps
 - Node.js and npm installed on your machine.
 - MongoDB instance (local or cloud-based).
 - Cloudinary account for image storage.
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/bookstore.git
-cd bookstore/backend
 ```
-````
