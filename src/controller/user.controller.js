@@ -75,7 +75,7 @@ const loginUser = async (req, res) => {
         if (error instanceof ApiError) {
             return res.status(error.statusCode).json(new ApiResponse(error.statusCode, null, error.message));
         }
-        return res.status(500).json(new ApiResponse(500, null, "Error logging in user", error.message));
+        return res.status(500).json(new ApiResponse(500, null, error.message));
     }
 };
 
