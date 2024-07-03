@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser"
 import express from "express"
 import cors from "cors"
 import booksRoutes from "./routes/books.routes.js"
+import userRoutes from "./routes/user.routes.js"
 
 const app = express()
 
@@ -22,6 +23,7 @@ app.use(express.urlencoded({
 
 
 app.use("/api/v1/books", booksRoutes)
+app.use("/api/v1/user", userRoutes)
 
 
 export default app
