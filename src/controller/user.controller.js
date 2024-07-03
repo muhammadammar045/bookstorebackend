@@ -91,7 +91,7 @@ const getUser = async (req, res) => {
         if (error instanceof ApiError) {
             return res.status(error.statusCode).json(new ApiResponse(error.statusCode, null, error.message));
         }
-        return res.status(500).json(new ApiResponse(500, null, "Error getting user", error.message));
+        return res.status(500).json(new ApiResponse(500, null, "Error getting User", error.message));
     }
 };
 
