@@ -79,6 +79,29 @@ const loginUser = async (req, res) => {
     }
 };
 
+const logoutUser = async (req, res) => {
+    try {
+        await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $unset: {
+                    refreshToken: 1
+                }
+            },
+            { new: true }
+        )
+        return res
+            .status(200)
+            .clearCookie("accessToken", cookieOptions)
+            .clearCookie("refreshToken", cookieOptions)
+            .json(new ApiResponse(200, null, "User logged out successfully"));
+
+
+    } catch (error) {
+        return res.status(500).json(new ApiResponse(500, null, error.message));
+    }
+}
+
 const getUser = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -98,5 +121,6 @@ const getUser = async (req, res) => {
 export {
     registerUser,
     loginUser,
+    logoutUser,
     getUser
 };
