@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
@@ -15,7 +14,7 @@ const paginate = (model) => asyncHandler(async (req, res, next) => {
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
 
-        const totalDocuments = await model.countDocuments({ owner: mongoose.Types.ObjectId(req.user._id) }).exec();
+        const totalDocuments = await model.countDocuments({ owner: req.user._id }).exec();
         const totalPages = Math.ceil(totalDocuments / limit);
 
         const result = {
@@ -41,7 +40,7 @@ const paginate = (model) => asyncHandler(async (req, res, next) => {
             };
         }
 
-        result.results = await model.find({ owner: mongoose.Types.ObjectId(req.user._id) }).limit(limit).skip(startIndex);
+        result.results = await model.find({ owner: req.user._id }).limit(limit).skip(startIndex);
 
         res.paginatedResult = result;
         next();

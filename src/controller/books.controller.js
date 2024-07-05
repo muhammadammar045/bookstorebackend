@@ -45,7 +45,7 @@ const addBook = asyncHandler(async (req, res) => {
 });
 
 const getAllBooks = asyncHandler(async (req, res) => {
-    const paginatedResult = await Books.find({ owner: req.user._id });
+    const paginatedResult = res.paginatedResult;
 
     if (!paginatedResult) {
         throw new ApiError(400, "No result found");

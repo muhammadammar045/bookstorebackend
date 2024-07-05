@@ -16,7 +16,7 @@ router
 
 router.
     route("/get-all-books")
-    .get(getAllBooks)
+    .get(paginate(Books), getAllBooks)
 
 router
     .route("/get-book/:bookId")
