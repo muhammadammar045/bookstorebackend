@@ -22,6 +22,11 @@ const bookSchema = new Schema(
         thumbnail: {
             type: String,
             req: true
+        },
+        author: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
         }
     },
     {
