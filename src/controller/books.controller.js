@@ -34,7 +34,7 @@ const addBook = asyncHandler(async (req, res) => {
         price,
         category,
         thumbnail: uploadedThumbnail.url,
-        user: req.user?._id
+        author: req.user?._id
     });
 
     if (!createBook) {
