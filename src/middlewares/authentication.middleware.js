@@ -1,8 +1,9 @@
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import jwt from "jsonwebtoken";
+import asyncHandler from "../utils/asyncHandler.js";
 
-export const isAuthenticated = async (req, res, next) => {
+export const isAuthenticated = asyncHandler(async (req, res, next) => {
     try {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
 
@@ -30,3 +31,4 @@ export const isAuthenticated = async (req, res, next) => {
         next(new ApiError(500, "Internal server error"));
     }
 }
+)

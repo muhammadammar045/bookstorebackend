@@ -1,6 +1,7 @@
 import ApiResponse from "../utils/ApiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-const paginate = (model) => async (req, res, next) => {
+const paginate = (model) => asyncHandler(async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 3;
@@ -38,13 +39,13 @@ const paginate = (model) => async (req, res, next) => {
             };
         }
 
-        result.results = await model.find().limit(limit).skip(startIndex);
+        result.results = await model.find({ owner: req.user._id }).limit(limit).skip(startIndex);
 
         res.paginatedResult = result;
         next();
     } catch (error) {
         res.status(500).json(new ApiResponse(500, `Server Error: ${error.message}`));
     }
-};
+})
 
 export default paginate;
