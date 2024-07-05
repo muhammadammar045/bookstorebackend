@@ -13,7 +13,7 @@ const paginate = (model) => asyncHandler(async (req, res, next) => {
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
 
-        const totalDocuments = await model.countDocuments().exec();
+        const totalDocuments = await model.countDocuments({ owner: req.user._id }).exec();
         const totalPages = Math.ceil(totalDocuments / limit);
 
         const result = {
