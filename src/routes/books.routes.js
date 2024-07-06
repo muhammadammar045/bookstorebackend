@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addBook, deleteBook, getAllBooks, getBook, updateBook, updateBookThumbnail } from "../controller/books.controller.js";
+import { addBook, deleteBook, getAllBooks, getBook, getCurrentUserBooks, updateBook, updateBookThumbnail } from "../controller/books.controller.js";
 import { uploadOnMulter } from "../middlewares/multer.middleware.js";
 import { Books } from "../models/books.model.js";
 import paginate from "../middlewares/paginate.middleware.js"
@@ -17,6 +17,10 @@ router
 router.
     route("/get-all-books")
     .get(paginate(Books), getAllBooks)
+
+router.
+    route("/get-current-user-books")
+    .get(getCurrentUserBooks)
 
 router
     .route("/get-book/:bookId")

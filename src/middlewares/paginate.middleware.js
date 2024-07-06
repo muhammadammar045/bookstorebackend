@@ -8,7 +8,7 @@ const paginate = (model) => asyncHandler(async (req, res, next) => {
 
         // console.log(page)
         // console.log(limit)
-        console.log(`User ID: ${req.user._id}`);
+        // console.log(`User ID: ${req.user._id}`);
 
 
         const startIndex = (page - 1) * limit;
