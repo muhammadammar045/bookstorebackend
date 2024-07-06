@@ -20,7 +20,7 @@ router.
 
 router.
     route("/get-current-user-books")
-    .get(getCurrentUserBooks)
+    .get(paginate(Books, (req) => ({ author: req.user._id })), getCurrentUserBooks)
 
 router
     .route("/get-book/:bookId")

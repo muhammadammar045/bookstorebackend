@@ -1,7 +1,7 @@
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-const paginate = (model) => asyncHandler(async (req, res, next) => {
+const paginate = (model, searchForKeyValuePairsInModel) => asyncHandler(async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 3;
@@ -10,12 +10,19 @@ const paginate = (model) => asyncHandler(async (req, res, next) => {
         // console.log(limit)
         // console.log(`User ID: ${req.user._id}`);
 
+        // the searchForKeyValuePairsInModel is a function that takes the request object and returns an object with key-value pairs to search for in the model, if not provided, it will search for all documents . In my case i had used req.user._id to search for the user id in the model
+        const keyValues = searchForKeyValuePairsInModel ? searchForKeyValuePairsInModel(req) : {};
+
 
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
 
-        const totalDocuments = await model.countDocuments().exec();
-        const totalPages = Math.ceil(totalDocuments / limit);
+        const totalDocuments = await model
+            .find(keyValues)
+            .countDocuments()
+            .exec();
+        const totalPages = Math
+            .ceil(totalDocuments / limit);
 
         const result = {
             meta: {
@@ -40,7 +47,10 @@ const paginate = (model) => asyncHandler(async (req, res, next) => {
             };
         }
 
-        result.results = await model.find().limit(limit).skip(startIndex);
+        result.results = await model
+            .find(keyValues)
+            .limit(limit)
+            .skip(startIndex);
 
         res.paginatedResult = result;
         next();
