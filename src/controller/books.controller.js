@@ -55,23 +55,6 @@ const getAllBooks = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUserBooks = asyncHandler(async (req, res) => {
-    // const userId = req.user?._id
-
-    // if (!userId) {
-    //     throw new ApiError(400, "userId is Required");
-    // }
-
-    // const books = await Books.find({ author: userId });
-
-    // if (!books) {
-    //     throw new ApiError(404, "No books found");
-    // }
-
-    // return res
-    //     .status(200)
-    //     .json(
-    //         new ApiResponse(200, books, "User Books fetched successfully")
-    //     );
 
     const paginatedResult = res.paginatedResult;
 
