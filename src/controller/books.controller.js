@@ -29,11 +29,11 @@ const addBook = asyncHandler(async (req, res) => {
     }
 
     const createBook = await Books.create({
-        title,
+        title: title?.toUpperCase(),
         description,
         price,
-        category,
-        thumbnail: uploadedThumbnail.url,
+        category: category?.toUpperCase(),
+        thumbnail: uploadedThumbnail?.url,
         author: req.user?._id
     });
 
@@ -131,7 +131,12 @@ const updateBook = asyncHandler(async (req, res) => {
     const updatedBook = await Books.findByIdAndUpdate(
         bookId,
         {
-            $set: { title, description, category, price }
+            $set: {
+                title: title?.toUpperCase(),
+                description,
+                category: category?.toUpperCase(),
+                price
+            }
         },
         { new: true }
     );
