@@ -4,8 +4,8 @@ import path from 'path';
 // Define disk storage configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const tempDir = path.resolve('./tmp');
-        // console.log(tempDir)
+        const tempDir = path.resolve('/tmp');
+        console.log(tempDir)
         cb(null, tempDir);
     },
     filename: (req, file, cb) => {

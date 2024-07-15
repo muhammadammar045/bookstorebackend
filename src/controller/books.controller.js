@@ -173,7 +173,7 @@ const updateBookThumbnail = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No file uploaded");
     }
 
-    const filePath = path.resolve('./tmp', file.filename);
+    const filePath = path.resolve('/tmp', file.filename);
     const uploadedThumbnail = await uploadImageToCloudinary(filePath);
 
     if (!uploadedThumbnail || !uploadedThumbnail.url) {
