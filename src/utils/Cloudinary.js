@@ -40,9 +40,9 @@ const deleteImageFromCloudinary = async (fileUrl) => {
         const deletedFile = await cloudinary.uploader
             .destroy(filePath, { resource_type: 'image' });
 
-        if (deletedFile.result === 'ok') {
-            console.log(`The File is deleted Successfully.`);
-        }
+        // if (deletedFile.result === 'ok') {
+        //     console.log(`The File is deleted Successfully.`);
+        // }
 
         return deletedFile;
     } catch (error) {
