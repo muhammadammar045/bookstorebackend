@@ -4,7 +4,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 const paginate = (model, searchForKeyValuePairsInModel) => asyncHandler(async (req, res, next) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 3;
+        const limit = parseInt(req.query.limit) || 6;
 
         // console.log(page)
         // console.log(limit)

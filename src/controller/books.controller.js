@@ -5,6 +5,7 @@ import ApiResponse from "../utils/ApiResponse.js";
 import { deleteImageFromCloudinary, uploadImageToCloudinary } from "../utils/Cloudinary.js";
 import path from "path";
 import asyncHandler from "../utils/asyncHandler.js";
+import { isAdmin } from "../middlewares/authentication.middleware.js";
 
 const addBook = asyncHandler(async (req, res) => {
     const { title, description, price, category } = req.body;
@@ -123,10 +124,6 @@ const updateBook = asyncHandler(async (req, res) => {
     if (!book) {
         throw new ApiError(404, "Book Not Found");
     }
-
-    // if (book.owner.toString() !== req.user._id.toString()) {
-    //     throw new ApiError(403, "You are not authorized to update this Book")
-    // }
 
     const updatedBook = await Books.findByIdAndUpdate(
         bookId,

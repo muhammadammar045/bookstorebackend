@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { getUser, loginUser, logoutUser, registerUser } from "../controller/user.controller.js";
-import { isAuthenticated } from "../middlewares/authentication.middleware.js";
+import { getAllUsers, getUser, loginUser, logoutUser, registerUser } from "../controller/user.controller.js";
+import { isAdmin, isAuthenticated } from "../middlewares/authentication.middleware.js";
 const router = Router();
 
 router
@@ -12,6 +12,9 @@ router
 router
     .route("/get-user")
     .get(isAuthenticated, getUser)
+router
+    .route("/get-all-users")
+    .get(isAuthenticated, isAdmin, getAllUsers)
 router
     .route("/logout")
     .post(isAuthenticated, logoutUser)

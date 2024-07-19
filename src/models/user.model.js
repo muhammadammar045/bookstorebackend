@@ -19,6 +19,15 @@ const userSchema = new Schema(
             type: String,
             req: [true, "Password is required"],
         },
+        role: {
+            type: Schema.Types.ObjectId,
+            ref: "Role",
+            default: "6697912d3731561b502128d5"
+        },
+        profileImage: {
+            type: String,
+            default: "https://res.cloudinary.com/ammardata/image/upload/v1721213653/mp0l52imhgwsx8qca1pm.png"
+        },
         refreshToken: {
             type: String,
         }
@@ -32,6 +41,9 @@ userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next(); // if pass is modified then return 
     const hashPassword = await bcrypt.hash(this.password, 10);
     this.password = hashPassword;
+    if (this.email === process.env.ADMIN_EMAIL) {
+        this.role = "669791941663d1d968d6025a"
+    }
     next()
 })
 
@@ -49,6 +61,7 @@ userSchema.methods.AccessToken = function () {
     return accessToken;
 
 }
+
 userSchema.methods.RefreshToken = function () {
     const refreshToken = jwt.sign(
         {
