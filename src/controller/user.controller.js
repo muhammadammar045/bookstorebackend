@@ -103,7 +103,9 @@ const getUser = asyncHandler(async (req, res) => {
 
 const getAllUsers = asyncHandler(async (req, res) => {
 
-    const users = await User.find({}).select("-password -refreshToken");
+    const users = await User.find({}).populate({
+        path: "role"
+    }).select("-password -refreshToken");
 
     if (users.length === 0) throw new ApiError(404, "No users found");
 

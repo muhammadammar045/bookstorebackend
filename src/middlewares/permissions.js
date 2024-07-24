@@ -22,7 +22,7 @@ export const hasPermissions = (requiredPermissions, Model, paramsIdName) => asyn
     const userPermissions = userRole.permissions.map(permission => permission.permissionName);
 
     if (userRole.roleName === 'admin') {
-        console.log('User is admin, granting access');
+        // console.log('User is admin, granting access');
         return next();
     }
 
