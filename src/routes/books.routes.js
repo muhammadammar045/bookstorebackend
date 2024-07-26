@@ -25,7 +25,7 @@ router.
 
 router
     .route("/get-book/:bookId")
-    .get(hasPermissions(["read"]), getBook)
+    .get(hasPermissions(["read"], Books, "bookId"), getBook)
 
 router
     .route("/delete-book/:bookId")

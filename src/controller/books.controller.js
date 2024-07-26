@@ -5,7 +5,6 @@ import ApiResponse from "../utils/ApiResponse.js";
 import { deleteImageFromCloudinary, uploadImageToCloudinary } from "../utils/Cloudinary.js";
 import path from "path";
 import asyncHandler from "../utils/asyncHandler.js";
-import { isAdmin } from "../middlewares/authentication.middleware.js";
 
 const addBook = asyncHandler(async (req, res) => {
     const { title, description, price, category } = req.body;
@@ -52,7 +51,7 @@ const getAllBooks = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No result found");
     }
 
-    return res.status(200).json(new ApiResponse(200, paginatedResult, "Books fetched with pagination"));
+    return res.status(200).json(new ApiResponse(200, paginatedResult, "All Books fetched with pagination"));
 });
 
 const getCurrentUserBooks = asyncHandler(async (req, res) => {
@@ -63,11 +62,13 @@ const getCurrentUserBooks = asyncHandler(async (req, res) => {
         throw new ApiError(400, "No result found");
     }
 
-    return res.status(200).json(new ApiResponse(200, paginatedResult, "Books fetched with pagination"));
+    return res.status(200).json(new ApiResponse(200, paginatedResult, "Books fetched for current user with pagination"));
 })
 
 const getBook = asyncHandler(async (req, res) => {
     const { bookId } = req.params;
+    const isOwner = req.role
+    console.log(isOwner)
 
     if (!bookId?.trim() || !isValidObjectId(bookId)) {
         throw new ApiError(400, "Invalid book id");
@@ -79,7 +80,7 @@ const getBook = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Book Not Found");
     }
 
-    return res.status(200).json(new ApiResponse(200, book, "Book Fetched Successfully"));
+    return res.status(200).json(new ApiResponse(200, { book, isOwner }, "Book Fetched Successfully"));
 });
 
 const deleteBook = asyncHandler(async (req, res) => {

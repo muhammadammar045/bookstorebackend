@@ -56,15 +56,24 @@ const loginUser = asyncHandler(async (req, res) => {
     const comparedPassword = await user.ComparePassword(password);
     if (!comparedPassword) throw new ApiError(401, "Invalid credentials");
 
-    const loggedUser = await User.findById(user._id).select("-password -refreshToken");
+    const loggedUser = await User
+        .findById(user._id)
+        .populate({
+            path: "role",
+            populate: {
+                path: "permissions",
+            }
+        })
+        .select("-password -refreshToken");
 
+    const permissions = loggedUser.role.permissions.map(permission => permission.permissionName);
     const { accessToken, refreshToken } = await generateTokens(user._id);
 
     return res.status(200)
         .cookie("accessToken", accessToken, cookieOptions)
         .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
-            new ApiResponse(200, { user: loggedUser, accessToken, refreshToken }, "User logged in successfully")
+            new ApiResponse(200, { user: loggedUser, permissions, accessToken, refreshToken }, "User logged in successfully")
         );
 
 });
