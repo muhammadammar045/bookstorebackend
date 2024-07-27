@@ -112,9 +112,43 @@ const getUser = asyncHandler(async (req, res) => {
 
 const getAllUsers = asyncHandler(async (req, res) => {
 
-    const users = await User.find({}).populate({
-        path: "role"
-    }).select("-password -refreshToken");
+    const users = await User.aggregate([
+        {
+            $lookup: {
+                from: "roles",
+                localField: "role",
+                foreignField: "_id",
+                as: "role"
+            }
+        },
+        {
+            $unwind: "$role"
+        },
+        {
+            $lookup: {
+                from: "permissions",
+                localField: "role.permissions",
+                foreignField: "_id",
+                as: "permissions"
+            }
+        },
+
+        {
+            $project: {
+                _id: 1,
+                fullname: 1,
+                email: 1,
+                roleName: "$role.roleName",
+                permissions: {
+                    $map: {
+                        input: "$permissions",
+                        as: "perm",
+                        in: "$$perm.permissionName"
+                    }
+                }
+            }
+        }
+    ]);
 
     if (users.length === 0) throw new ApiError(404, "No users found");
 

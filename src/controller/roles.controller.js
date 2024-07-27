@@ -5,7 +5,32 @@ import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 const getAllRoles = asyncHandler(async (req, res) => {
-    const roles = await Role.find({});
+    const roles = await Role.aggregate(
+        [
+            {
+                $lookup: {
+                    from: "permissions",
+                    localField: "permissions",
+                    foreignField: "_id",
+                    as: "permissions"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    roleName: 1,
+                    permissions: {
+                        $map: {
+                            input: "$permissions",
+                            as: "perm",
+                            in: "$$perm.permissionName"
+                        }
+                    }
+                }
+            }
+
+        ]
+    );
 
     if (roles.length === 0) throw new ApiError(404, "No roles found");
 
