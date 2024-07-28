@@ -42,7 +42,7 @@ const getAllRoles = asyncHandler(async (req, res) => {
 const addRole = asyncHandler(async (req, res) => {
     const { roleName } = req.body;
 
-    if (!roleName || typeof roleName !== 'string') throw new ApiError(400, "Please provide a valid role name");
+    if (!roleName) throw new ApiError(400, "Please provide a valid role name");
 
     const existingRole = await Role.findOne({ roleName });
 

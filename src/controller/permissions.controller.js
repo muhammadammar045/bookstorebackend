@@ -19,7 +19,7 @@ const getAllPermissions = asyncHandler(async (req, res) => {
 const addPermission = asyncHandler(async (req, res) => {
     const { permissionName } = req.body;
 
-    if (!permissionName || typeof permissionName !== 'string') {
+    if (!permissionName) {
         throw new ApiError(400, "Please provide a valid permission name");
     }
 
