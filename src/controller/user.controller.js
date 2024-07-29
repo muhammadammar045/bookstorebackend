@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -56,24 +57,70 @@ const loginUser = asyncHandler(async (req, res) => {
     const comparedPassword = await user.ComparePassword(password);
     if (!comparedPassword) throw new ApiError(401, "Invalid credentials");
 
-    const loggedUser = await User
-        .findById(user._id)
-        .populate({
-            path: "role",
-            populate: {
-                path: "permissions",
-            }
-        })
-        .select("-password -refreshToken");
+    // const loggedUser = await User
+    //     .findById(user._id)
+    //     .populate({
+    //         path: "role",
+    //         populate: {
+    //             path: "permissions",
+    //         }
+    //     })
+    //     .select("-password -refreshToken");
 
-    const permissions = loggedUser.role.permissions.map(permission => permission.permissionName);
+    const loggedUser = await User.aggregate(
+        [
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(user._id),
+                }
+            },
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "role",
+                    foreignField: "_id",
+                    as: "role"
+                }
+            },
+            {
+                $unwind: "$role"
+            },
+            {
+                $lookup: {
+                    from: "permissions",
+                    localField: "role.permissions",
+                    foreignField: "_id",
+                    as: "permissions"
+                }
+            },
+
+            {
+                $project: {
+                    _id: 1,
+                    fullname: 1,
+                    email: 1,
+                    profileImage: 1,
+                    roleName: "$role.roleName",
+                    permissions: {
+                        $map: {
+                            input: "$permissions",
+                            as: "perm",
+                            in: "$$perm.permissionName"
+                        }
+                    }
+                }
+            }
+
+        ]
+    )
+
     const { accessToken, refreshToken } = await generateTokens(user._id);
 
     return res.status(200)
         .cookie("accessToken", accessToken, cookieOptions)
         .cookie("refreshToken", refreshToken, cookieOptions)
         .json(
-            new ApiResponse(200, { user: loggedUser, permissions, accessToken, refreshToken }, "User logged in successfully")
+            new ApiResponse(200, { user: loggedUser[0], accessToken, refreshToken }, "User logged in successfully")
         );
 
 });
@@ -138,6 +185,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
                 _id: 1,
                 fullname: 1,
                 email: 1,
+                profileImage: 1,
                 roleName: "$role.roleName",
                 permissions: {
                     $map: {

@@ -76,11 +76,10 @@ const updateRole = asyncHandler(async (req, res) => {
 const deleteRole = asyncHandler(async (req, res) => {
     const { roleId } = req.params;
 
-    const role = await Role.findById(roleId);
+    const role = await Role.findByIdAndDelete(roleId);
 
-    if (!role) throw new ApiError(404, "Role not found");
+    if (!role) throw new ApiError(404, "Role not Deleted");
 
-    await role.remove();
 
     return res
         .status(200)

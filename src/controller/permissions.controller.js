@@ -59,13 +59,12 @@ const updatePermission = asyncHandler(async (req, res) => {
 const deletePermission = asyncHandler(async (req, res) => {
     const { permissionId } = req.params;
 
-    const permission = await Permission.findById(permissionId);
+    const permission = await Permission.findByIdAndDelete(permissionId);
 
     if (!permission) {
-        throw new ApiError(404, "Permission not found");
+        throw new ApiError(404, "Permission not Deleted");
     }
 
-    await permission.remove();
 
     return res.status(200).json(new ApiResponse(200, permission, "Permission deleted successfully"));
 });
