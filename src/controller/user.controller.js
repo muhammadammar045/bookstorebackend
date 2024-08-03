@@ -54,6 +54,8 @@ const loginUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) throw new ApiError(404, "User not found");
 
+    const userId = user._id;
+
     const comparedPassword = await user.ComparePassword(password);
     if (!comparedPassword) throw new ApiError(401, "Invalid credentials");
 
@@ -71,7 +73,7 @@ const loginUser = asyncHandler(async (req, res) => {
         [
             {
                 $match: {
-                    _id: new mongoose.Types.ObjectId(user._id),
+                    _id: new mongoose.Types.ObjectId(userId),
                 }
             },
             {
@@ -148,14 +150,138 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const getUser = asyncHandler(async (req, res) => {
 
-    const userId = req.params.id;
+    const { userId } = req.params;
 
-    const user = await User.findById(userId).select("-password -refreshToken");
+    const user = await User.aggregate(
+        [
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(userId),
+                }
+            },
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "role",
+                    foreignField: "_id",
+                    as: "role"
+                }
+            },
+            {
+                $unwind: "$role"
+            },
+            {
+                $lookup: {
+                    from: "permissions",
+                    localField: "role.permissions",
+                    foreignField: "_id",
+                    as: "permissions"
+                }
+            },
+
+            {
+                $project: {
+                    _id: 1,
+                    fullname: 1,
+                    email: 1,
+                    profileImage: 1,
+                    roleName: "$role.roleName",
+                    permissions: {
+                        $map: {
+                            input: "$permissions",
+                            as: "perm",
+                            in: "$$perm.permissionName"
+                        }
+                    }
+                }
+            }
+
+        ]
+    )
     if (!user) throw new ApiError(404, "User not found");
 
-    return res.status(200).json(new ApiResponse(200, user, "User fetched successfully"));
+    return res.status(200).json(new ApiResponse(200, user[0], "User fetched successfully"));
 
 });
+
+const updateUser = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { fullname, email } = req.body;
+
+    // Validate input
+    if ([fullname, email].some(field => !field || !field.trim())) {
+        throw new ApiError(400, "Invalid input");
+    }
+
+    // Update user details
+    const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+            $set: {
+                fullname,
+                email,
+            }
+        },
+        { new: true }
+    );
+
+    if (!updatedUser) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Aggregate to get role and permissions
+    const aggregatedUser = await User.aggregate([
+        { $match: { _id: updatedUser._id } },
+        {
+            $lookup: {
+                from: "roles",
+                localField: "role",
+                foreignField: "_id",
+                as: "role"
+            },
+        },
+        { $unwind: "$role" },
+        {
+            $lookup: {
+                from: "permissions",
+                localField: "role.permissions",
+                foreignField: "_id",
+                as: "permissions"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                fullname: 1,
+                email: 1,
+                roleName: "$role.roleName",
+                createdAt: 1,
+                updatedAt: 1,
+                permissions: {
+                    $map: {
+                        input: "$permissions",
+                        as: "permission",
+                        in: "$$permission.permissionName"
+                    }
+                }
+            }
+        }
+    ]);
+
+    if (!aggregatedUser.length) {
+        throw new ApiError(404, "User not found after update");
+    }
+
+    return res.status(200).json(new ApiResponse(200, aggregatedUser[0], "User updated successfully"));
+});
+
+const deleteUser = asyncHandler(async (req, res) => {
+    const { userId } = req.params
+    const deletedUser = await User.findByIdAndDelete(userId).select("-password -refreshToken");
+    if (!deletedUser) throw new ApiError(404, "User not deleted");
+
+    return res.status(200).json(new ApiResponse(200, deletedUser, "User deleted successfully"));
+})
 
 const getAllUsers = asyncHandler(async (req, res) => {
 
@@ -187,6 +313,8 @@ const getAllUsers = asyncHandler(async (req, res) => {
                 email: 1,
                 profileImage: 1,
                 roleName: "$role.roleName",
+                createdAt: 1,
+                updatedAt: 1,
                 permissions: {
                     $map: {
                         input: "$permissions",
@@ -210,4 +338,7 @@ export {
     logoutUser,
     getUser,
     getAllUsers,
+    deleteUser,
+    updateUser,
+
 };

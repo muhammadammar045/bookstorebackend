@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllUsers, getUser, loginUser, logoutUser, registerUser } from "../controller/user.controller.js";
+import { deleteUser, getAllUsers, getUser, loginUser, logoutUser, registerUser, updateUser } from "../controller/user.controller.js";
 import { isAdmin, isAuthenticated } from "../middlewares/authentication.middleware.js";
 const router = Router();
 
@@ -10,8 +10,14 @@ router
     .route("/register")
     .post(registerUser)
 router
-    .route("/get-user")
+    .route("/get-user/:userId")
     .get(isAuthenticated, getUser)
+router
+    .route("/update-user/:userId")
+    .patch(isAuthenticated, updateUser)
+router
+    .route("/delete-user/:userId")
+    .delete(isAuthenticated, deleteUser)
 router
     .route("/get-all-users")
     .get(isAuthenticated, isAdmin, getAllUsers)

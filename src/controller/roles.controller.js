@@ -39,6 +39,18 @@ const getAllRoles = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, roles, "Roles retrieved successfully"));
 });
 
+const getRole = asyncHandler(async (req, res) => {
+    const { roleId } = req.params
+
+    const role = await Role.findById(roleId).populate("permissions");
+
+    if (!role) throw new ApiError(404, "Role not found");
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, role, "Role retrieved successfully"));
+})
+
 const addRole = asyncHandler(async (req, res) => {
     const { roleName } = req.body;
 
@@ -87,30 +99,44 @@ const deleteRole = asyncHandler(async (req, res) => {
 });
 
 const assignRoleToUser = asyncHandler(async (req, res) => {
-    const { userId, roleId } = req.params;
+    const { userId, roleName } = req.body;
 
-    if (!userId || !roleId) throw new ApiError(400, "Please provide a valid user and role id");
+    // console.log("userId :", userId)
+    // console.log("roleName :", roleName)
+
+    if (!userId || !roleName) {
+        throw new ApiError(400, "Please provide a valid user ID and role name");
+    }
 
     const user = await User.findById(userId);
-    if (!user) throw new ApiError(404, "User not found");
+    // console.log("USER :", user)
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
 
-    const role = await Role.findById(roleId);
-    if (!role) throw new ApiError(404, "Role not found");
+    const role = await Role.findOne({ roleName });
+    // console.log("Role :", role)
+    if (!role) {
+        throw new ApiError(404, "Role not found");
+    }
 
     user.role = role._id;
 
-    const roleAssigned = await user.save();
+    await user.save();
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(200, roleAssigned, "Role assigned successfully")
-        );
+    const updatedUserRole = await User.findById(user._id).populate("role");
+    // console.log(updatedUserRole)
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedUserRole, "Role assigned successfully")
+    );
 });
+
 
 
 export {
     getAllRoles,
+    getRole,
     addRole,
     updateRole,
     deleteRole,

@@ -16,6 +16,19 @@ const getAllPermissions = asyncHandler(async (req, res) => {
 });
 
 
+const getPermission = asyncHandler(async (req, res) => {
+    const { permissionId } = req.params;
+
+    const permission = await Permission.findById(permissionId);
+
+    if (!permission) {
+        throw new ApiError(404, "Permission not found");
+    }
+
+    return res.status(200).json(new ApiResponse(200, permission, "Permission retrieved successfully"));
+})
+
+
 const addPermission = asyncHandler(async (req, res) => {
     const { permissionName } = req.body;
 
@@ -69,24 +82,24 @@ const deletePermission = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, permission, "Permission deleted successfully"));
 });
 
-
 const assignPermissionsToRole = asyncHandler(async (req, res) => {
-    const { roleId } = req.params
-    const { permissionIds } = req.body;
+    const { roleId, permissionsName } = req.body;
+    // console.info("ROLE ID : ", roleId);
+    // console.info("PERMISSION NAMES :", permissionsName);
 
-    if (!roleId || !Array.isArray(permissionIds) || permissionIds.length === 0) {
-        throw new ApiError(400, "Please provide role ID and an array of permission IDs");
+    if (!roleId || !Array.isArray(permissionsName) || permissionsName.length === 0) {
+        throw new ApiError(400, "Please provide role ID and an array of permission names");
     }
 
     const role = await Role.findById(roleId);
     if (!role) throw new ApiError(404, "Role not found");
 
-    const permissions = await Permission.find({ _id: { $in: permissionIds } });
-    if (permissions.length !== permissionIds.length) {
+    const permissions = await Permission.find({ permissionName: { $in: permissionsName } });
+    if (permissions.length !== permissionsName.length) {
         throw new ApiError(404, "Some permissions not found");
     }
 
-    role.permissions.push(...permissionIds);
+    role.permissions = permissions.map(permission => permission._id);
     await role.save();
 
     return res
@@ -98,8 +111,10 @@ const assignPermissionsToRole = asyncHandler(async (req, res) => {
 
 
 
+
 export {
     getAllPermissions,
+    getPermission,
     addPermission,
     updatePermission,
     deletePermission,
