@@ -4,15 +4,15 @@ const bookSchema = new Schema(
     {
         title: {
             type: String,
-            req: true
+            required: true
         },
         description: {
             type: String,
-            req: true,
+            required: true,
         },
         price: {
             type: Number,
-            req: true
+            required: true
         },
         category: {
             type: String,
@@ -21,7 +21,7 @@ const bookSchema = new Schema(
         },
         thumbnail: {
             type: String,
-            req: true
+            required: true
         },
         author: {
             type: Schema.Types.ObjectId,

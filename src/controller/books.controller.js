@@ -68,7 +68,6 @@ const getCurrentUserBooks = asyncHandler(async (req, res) => {
 const getBook = asyncHandler(async (req, res) => {
     const { bookId } = req.params;
     const isOwner = req.role
-    console.log(isOwner)
 
     if (!bookId?.trim() || !isValidObjectId(bookId)) {
         throw new ApiError(400, "Invalid book id");

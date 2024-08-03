@@ -16,7 +16,7 @@ const uploadImageToCloudinary = async (filePath) => {
 
         const uploadedFile = await cloudinary.uploader.upload(filePath, { resource_type: 'auto' });
 
-        console.log(`Upload successful: ${uploadedFile.url}`);
+        // console.log(`Upload successful: ${uploadedFile.url}`);
 
         fs.unlinkSync(filePath);
 

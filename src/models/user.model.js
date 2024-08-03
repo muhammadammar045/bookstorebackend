@@ -6,18 +6,18 @@ const userSchema = new Schema(
     {
         fullname: {
             type: String,
-            req: [true, "Fullname is required"],
+            required: [true, "Fullname is required"],
             trim: true
         },
         email: {
             type: String,
-            req: [true, "Email is required"],
+            required: [true, "Email is required"],
             unique: [true, "Email already exists"],
             trim: true
         },
         password: {
             type: String,
-            req: [true, "Password is required"],
+            required: [true, "Password is required"],
         },
         role: {
             type: Schema.Types.ObjectId,

@@ -39,7 +39,6 @@ export const isAdmin = async (req, res, next) => {
         .populate('role');
 
     if (!user) throw new ApiError(404, "User not found");
-    // console.log("User role: ", user.role.roleName);
 
     if (user.role.roleName !== "admin") {
         throw new ApiError(403, "Admin access required");
