@@ -101,21 +101,16 @@ const deleteRole = asyncHandler(async (req, res) => {
 const assignRoleToUser = asyncHandler(async (req, res) => {
     const { userId, roleName } = req.body;
 
-    // console.log("userId :", userId)
-    // console.log("roleName :", roleName)
-
     if (!userId || !roleName) {
         throw new ApiError(400, "Please provide a valid user ID and role name");
     }
 
     const user = await User.findById(userId);
-    // console.log("USER :", user)
     if (!user) {
         throw new ApiError(404, "User not found");
     }
 
     const role = await Role.findOne({ roleName });
-    // console.log("Role :", role)
     if (!role) {
         throw new ApiError(404, "Role not found");
     }
@@ -125,7 +120,6 @@ const assignRoleToUser = asyncHandler(async (req, res) => {
     await user.save();
 
     const updatedUserRole = await User.findById(user._id).populate("role");
-    // console.log(updatedUserRole)
 
     return res.status(200).json(
         new ApiResponse(200, updatedUserRole, "Role assigned successfully")

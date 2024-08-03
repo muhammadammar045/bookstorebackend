@@ -84,8 +84,6 @@ const deletePermission = asyncHandler(async (req, res) => {
 
 const assignPermissionsToRole = asyncHandler(async (req, res) => {
     const { roleId, permissionsName } = req.body;
-    // console.info("ROLE ID : ", roleId);
-    // console.info("PERMISSION NAMES :", permissionsName);
 
     if (!roleId || !Array.isArray(permissionsName) || permissionsName.length === 0) {
         throw new ApiError(400, "Please provide role ID and an array of permission names");
