@@ -156,7 +156,7 @@ const getUser = asyncHandler(async (req, res) => {
         [
             {
                 $match: {
-                    _id: new mongoose.Types.ObjectId(userId),
+                    _id: mongoose.Types.ObjectId.createFromHexString(userId),
                 }
             },
             {
@@ -186,6 +186,8 @@ const getUser = asyncHandler(async (req, res) => {
                     email: 1,
                     profileImage: 1,
                     roleName: "$role.roleName",
+                    createdAt: 1,
+                    updatedAt: 1,
                     permissions: {
                         $map: {
                             input: "$permissions",

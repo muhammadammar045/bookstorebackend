@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Role } from "../models/role.model.js";
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
@@ -42,13 +43,42 @@ const getAllRoles = asyncHandler(async (req, res) => {
 const getRole = asyncHandler(async (req, res) => {
     const { roleId } = req.params
 
-    const role = await Role.findById(roleId).populate("permissions");
+    const role = await Role.aggregate([
+        {
+            $match: {
+                _id: mongoose.Types.ObjectId.createFromHexString(roleId)
+            }
+        },
+        {
+            $lookup: {
+                from: "permissions",
+                localField: "permissions",
+                foreignField: "_id",
+                as: "permissions"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                roleName: 1,
+                permissions: {
+                    $map: {
+                        input: "$permissions",
+                        as: "permission",
+                        in: "$$permission.permissionName"
+                    }
+                },
+                createdAt: 1,
+                updatedAt: 1
+            }
+        }
+    ])
 
     if (!role) throw new ApiError(404, "Role not found");
 
     return res
         .status(200)
-        .json(new ApiResponse(200, role, "Role retrieved successfully"));
+        .json(new ApiResponse(200, role[0], "Role retrieved successfully"));
 })
 
 const addRole = asyncHandler(async (req, res) => {
@@ -68,16 +98,16 @@ const addRole = asyncHandler(async (req, res) => {
 });
 
 const updateRole = asyncHandler(async (req, res) => {
-    const { name } = req.body;
+    const { roleName } = req.body;
     const { roleId } = req.params;
 
-    if (!name || typeof name !== 'string') throw new ApiError(400, "Please provide a valid role name");
+    if (!roleName || typeof roleName !== 'string') throw new ApiError(400, "Please provide a valid role name");
 
     const role = await Role.findById(roleId);
 
     if (!role) throw new ApiError(404, "Role not found");
 
-    role.roleName = name;
+    role.roleName = roleName;
     const updatedRole = await role.save();
 
     return res
