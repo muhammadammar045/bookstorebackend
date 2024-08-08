@@ -45,25 +45,137 @@ const addBook = asyncHandler(async (req, res) => {
 });
 
 const getAllBooks = asyncHandler(async (req, res) => {
-    const paginatedResult = res.paginatedResult;
+    const { page = 1, limit = 10, q = "" } = req.query;
 
-    if (!paginatedResult) {
-        throw new ApiError(400, "No result found");
-    }
+    const pageNumber = parseInt(page, 10);
+    const pageSize = parseInt(limit, 10);
+    const skip = (pageNumber - 1) * pageSize;
 
-    return res.status(200).json(new ApiResponse(200, paginatedResult, "All Books fetched with pagination"));
+    const query = q ? { title: new RegExp(q, 'i') } : {};
+
+
+    const booksPipeline = [
+        { $match: query },
+
+        {
+            $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "author"
+            }
+        },
+        {
+            $unwind: "$author"
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                description: 1,
+                price: 1,
+                category: 1,
+                thumbnail: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                author: {
+                    _id: 1,
+                    fullname: 1,
+                }
+            }
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: pageSize
+        }
+    ];
+
+    const books = await Books.aggregate(booksPipeline);
+    const totalBooks = await Books.countDocuments();
+    const totalPages = Math.ceil(totalBooks / pageSize);
+
+    const response = {
+        success: true,
+        count: books.length,
+        totalBooks,
+        totalPages,
+        currentPage: pageNumber,
+        pageSize,
+        books: books,
+    };
+
+    return res.status(200).json(new ApiResponse(200, response, "All Books fetched with pagination"));
 });
 
 const getCurrentUserBooks = asyncHandler(async (req, res) => {
 
-    const paginatedResult = res.paginatedResult;
+    const { page = 1, limit = 10, q = "" } = req.query;
+    const userId = req.user._id;
 
-    if (!paginatedResult) {
-        throw new ApiError(400, "No result found");
-    }
+    const pageNumber = parseInt(page, 10);
+    const pageSize = parseInt(limit, 10);
+    const skip = (pageNumber - 1) * pageSize;
 
-    return res.status(200).json(new ApiResponse(200, paginatedResult, "Books fetched for current user with pagination"));
-})
+    const query = q ? { title: new RegExp(q, 'i') } : {};
+
+    const booksPipeline = [
+        {
+            $match: { author: userId }
+        },
+        { $match: query },
+        {
+            $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "author"
+            }
+        },
+        {
+            $unwind: "$author"
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                description: 1,
+                price: 1,
+                category: 1,
+                thumbnail: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                author: {
+                    _id: 1,
+                    fullname: 1,
+                }
+            }
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: pageSize
+        }
+    ];
+
+    const books = await Books.aggregate(booksPipeline);
+    const totalBooks = await Books.countDocuments({ author: userId });
+    const totalPages = Math.ceil(totalBooks / pageSize);
+
+    const response = {
+        success: true,
+        count: books.length,
+        totalBooks,
+        totalPages,
+        currentPage: pageNumber,
+        pageSize,
+        books: books,
+    };
+
+    return res.status(200).json(new ApiResponse(200, response, "Books for the user fetched with pagination"));
+});
 
 const getBook = asyncHandler(async (req, res) => {
     const { bookId } = req.params;
