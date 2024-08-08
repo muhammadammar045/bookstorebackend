@@ -17,11 +17,11 @@ router
 
 router.
     route("/get-all-books")
-    .get(hasPermissions(["read"]), paginate(Books), getAllBooks)
+    .get(hasPermissions(["read"]), getAllBooks)
 
 router.
     route("/get-current-user-books")
-    .get(hasPermissions(["read"]), paginate(Books, (req) => ({ author: req.user._id })), getCurrentUserBooks)
+    .get(hasPermissions(["read"]), getCurrentUserBooks)
 
 router
     .route("/get-book/:bookId")

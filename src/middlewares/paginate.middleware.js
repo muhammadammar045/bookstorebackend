@@ -1,62 +1,62 @@
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
-const paginate = (model, searchForKeyValuePairsInModel) => asyncHandler(async (req, res, next) => {
+const paginate = (model, options = {}) => asyncHandler(async (req, res, next) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 12;
-
-        // console.log(page)
-        // console.log(limit)
-        // console.log(`User ID: ${req.user._id}`);
-
-        // the searchForKeyValuePairsInModel is a function that takes the request object and returns an object with key-value pairs to search for in the model, if not provided, it will search for all documents . In my case i had used req.user._id to search for the user id in the model
-        const keyValues = searchForKeyValuePairsInModel ? searchForKeyValuePairsInModel(req) : {};
-
+        const {
+            page = 1,
+            limit = 10,
+            sort = {},
+            select = {},
+            populate = [],
+            populateSelect = "",
+            query = {},
+        } = req.query;
 
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
 
-        const totalDocuments = await model
-            .find(keyValues)
-            .countDocuments()
-            .exec();
-        const totalPages = Math
-            .ceil(totalDocuments / limit);
+        const totalDocuments = await model.countDocuments(query);
+        const totalPages = Math.ceil(totalDocuments / limit);
 
-        const result = {
-            meta: {
-                totalDocuments,
-                page,
-                limit,
-                totalPages
-            },
+        const results = await model
+            .find(query)
+            .sort(sort)
+            .select(select)
+            .populate(populate, populateSelect)
+            .skip(startIndex)
+            .limit(limit);
+
+        const paginatedResponse = {
+            success: true,
+            count: results.length,
+            totalDocuments,
+            totalPages,
+            currentPage: page,
+            pageSize: limit,
+            data: results,
         };
 
         if (endIndex < totalDocuments) {
-            result.meta.next = {
+            paginatedResponse.next = {
                 page: page + 1,
                 limit,
             };
         }
 
         if (startIndex > 0) {
-            result.meta.previous = {
+            paginatedResponse.previous = {
                 page: page - 1,
                 limit,
             };
         }
 
-        result.results = await model
-            .find(keyValues)
-            .limit(limit)
-            .skip(startIndex);
-
-        res.paginatedResult = result;
+        res.paginatedResponse = paginatedResponse;
         next();
     } catch (error) {
-        res.status(500).json(new ApiResponse(500, `Server Error: ${error.message}`));
+        console.error(error);
+        res.status(500).json(new ApiResponse(500, 'Server Error'));
     }
-})
+});
 
 export default paginate;
