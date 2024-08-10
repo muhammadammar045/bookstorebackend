@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser"
 import express from "express"
 import cors from "cors"
 import booksRoutes from "./routes/books.routes.js"
+import productsRoutes from "./routes/product.routes.js"
 import userRoutes from "./routes/user.routes.js"
 import rolesRoutes from "./routes/roles.routes.js"
 import permissionsRoutes from "./routes/permissions.routes.js"
@@ -32,6 +33,7 @@ app.use("/api/v1/user", userRoutes)
 app.use("/api/v1/roles", rolesRoutes)
 app.use("/api/v1/permissions", permissionsRoutes)
 app.use("/api/v1/category", categoryRoutes)
+app.use("/api/v1/products", productsRoutes)
 app.use("/api/v1/like", likeRoutes)
 app.use("/api/v1/rating", ratingRoutes)
 app.use("/api/v1/comment", commentRoutes)
