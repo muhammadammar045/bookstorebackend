@@ -2,7 +2,6 @@ import { Router } from "express";
 import { addBook, deleteBook, getAllBooks, getBook, getCurrentUserBooks, updateBook, updateBookThumbnail } from "../controller/books.controller.js";
 import { uploadOnMulter } from "../middlewares/multer.middleware.js";
 import { Books } from "../models/books.model.js";
-import paginate from "../middlewares/paginate.middleware.js"
 import { isAuthenticated } from "../middlewares/authentication.middleware.js";
 import { hasPermissions } from "../middlewares/permissions.js";
 
