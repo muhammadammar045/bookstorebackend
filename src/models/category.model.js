@@ -2,15 +2,14 @@ import mongoose from "mongoose";
 
 const categorySchema = new mongoose.Schema(
     {
+        parentCategory: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
+        },
         categoryName: {
             type: String,
             required: true,
             unique: true,
-        },
-        parentCategory: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Category",
-            default: null,
         },
         description: {
             type: String,

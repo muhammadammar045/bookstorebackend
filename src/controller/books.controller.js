@@ -207,10 +207,6 @@ const deleteBook = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Book Not Found");
     }
 
-    // if (book.owner.toString() !== req.user._id.toString()) {
-    //     throw new ApiError(403, "You are not authorized to delete this Book")
-    // }
-
     const deletedThumbnail = await deleteImageFromCloudinary(book.thumbnail);
     if (!deletedThumbnail) {
         throw new ApiError(500, "Thumbnail is not deleted");
@@ -268,10 +264,6 @@ const updateBookThumbnail = asyncHandler(async (req, res) => {
     if (!book) {
         throw new ApiError(404, "Book not found");
     }
-
-    // if (book.owner.toString() !== req.user._id.toString()) {
-    //     throw new ApiError(403, "You are not authorized to update this Book Thumbnail")
-    // }
 
     if (book.thumbnail) {
         await deleteImageFromCloudinary(book.thumbnail);

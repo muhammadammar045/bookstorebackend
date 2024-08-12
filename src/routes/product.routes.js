@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addProduct, deleteProduct, getAllProducts, getProduct, getCurrentUserProducts, updateProduct, updateProductThumbnail } from "../controller/product.controller.js";
+import { addProduct, deleteProduct, getAllProducts, getProduct, getCurrentUserProducts, updateProduct, updateProductThumbnail, getAllProductsAdmin } from "../controller/product.controller.js";
 import { uploadOnMulter } from "../middlewares/multer.middleware.js";
 import { Product } from "../models/product.model.js";
 import { isAuthenticated } from "../middlewares/authentication.middleware.js";
@@ -17,6 +17,10 @@ router
 router.
     route("/get-all-products")
     .get(hasPermissions(["read"]), getAllProducts)
+
+router.
+    route("/get-all-products-admin")
+    .get(hasPermissions(["read"]), getAllProductsAdmin)
 
 router.
     route("/get-current-user-products")

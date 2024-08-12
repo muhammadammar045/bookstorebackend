@@ -86,7 +86,7 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Comment not found or you're not authorized to delete this comment");
     }
 
-    return res.status(200).json(new ApiResponse(200, null, "Comment deleted successfully"));
+    return res.status(200).json(new ApiResponse(200, comment, "Comment deleted successfully"));
 });
 
 export {

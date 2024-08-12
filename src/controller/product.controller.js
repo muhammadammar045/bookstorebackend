@@ -1,4 +1,4 @@
-import { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { Product } from "../models/product.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -69,12 +69,26 @@ const getAllProducts = asyncHandler(async (req, res) => {
             $unwind: "$author"
         },
         {
+            $lookup: {
+                from: "categories",
+                localField: "category",
+                foreignField: "_id",
+                as: "category"
+            }
+        },
+        {
+            $unwind: "$category"  // Ensures category is an object, not an array
+        },
+        {
             $project: {
                 _id: 1,
                 title: 1,
                 description: 1,
                 price: 1,
-                category: 1,
+                category: {
+                    _id: "$category._id",
+                    name: "$category.categoryName"
+                },
                 thumbnail: 1,
                 createdAt: 1,
                 updatedAt: 1,
@@ -109,6 +123,66 @@ const getAllProducts = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, response, "All Product fetched with pagination"));
 });
 
+const getAllProductsAdmin = asyncHandler(async (req, res) => {
+
+    const productsPipeline = [
+        {
+            $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "author"
+            }
+        },
+        {
+            $unwind: "$author"
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "category",
+                foreignField: "_id",
+                as: "category"
+            }
+        },
+        {
+            $unwind: "$category"
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                description: 1,
+                price: 1,
+                category: {
+                    _id: "$category._id",
+                    name: "$category.categoryName"
+                },
+                thumbnail: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                author: {
+                    _id: 1,
+                    fullname: 1,
+                }
+            }
+        },
+
+    ];
+
+    const products = await Product.aggregate(productsPipeline);
+
+    const response = {
+        success: true,
+        products: products,
+    };
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, response, "All Product fetched with pagination"));
+});
+
 const getCurrentUserProducts = asyncHandler(async (req, res) => {
 
     const { page = 1, limit = 10, q = "" } = req.query;
@@ -137,12 +211,26 @@ const getCurrentUserProducts = asyncHandler(async (req, res) => {
             $unwind: "$author"
         },
         {
+            $lookup: {
+                from: "categories",
+                localField: "category",
+                foreignField: "_id",
+                as: "category"
+            }
+        },
+        {
+            $unwind: "$category"  // Ensures category is an object, not an array
+        },
+        {
             $project: {
                 _id: 1,
                 title: 1,
                 description: 1,
                 price: 1,
-                category: 1,
+                category: {
+                    _id: "$category._id",
+                    name: "$category.categoryName"
+                },
                 thumbnail: 1,
                 createdAt: 1,
                 updatedAt: 1,
@@ -178,45 +266,93 @@ const getCurrentUserProducts = asyncHandler(async (req, res) => {
 });
 
 const getProduct = asyncHandler(async (req, res) => {
-    const { bookId } = req.params;
+    const { productId } = req.params;
     const isOwner = req.role
 
-    if (!bookId?.trim() || !isValidObjectId(bookId)) {
-        throw new ApiError(400, "Invalid book id");
+    if (!productId?.trim() || !isValidObjectId(productId)) {
+        throw new ApiError(400, "Invalid product id");
     }
 
-    const book = await Product.findById(bookId);
+    const productsPipeline = [
+        {
+            $match: {
+                _id: mongoose.Types.ObjectId.createFromHexString(productId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "author"
+            }
+        },
+        {
+            $unwind: "$author"
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "category",
+                foreignField: "_id",
+                as: "category"
+            }
+        },
+        {
+            $unwind: "$category"  // Ensures category is an object, not an array
+        },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                description: 1,
+                price: 1,
+                category: {
+                    _id: "$category._id",
+                    name: "$category.categoryName"
+                },
+                thumbnail: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                author: {
+                    _id: 1,
+                    fullname: 1,
+                }
+            }
+        },
 
-    if (!book) {
+
+    ];
+
+    const productArr = await Product.aggregate(productsPipeline)
+    const product = productArr[0]
+
+    if (!product) {
         throw new ApiError(404, "Product Not Found");
     }
 
-    return res.status(200).json(new ApiResponse(200, { book, isOwner }, "Product Fetched Successfully"));
+    return res.status(200).json(new ApiResponse(200, { product, isOwner }, "Product Fetched Successfully"));
 });
 
 const deleteProduct = asyncHandler(async (req, res) => {
-    const { bookId } = req.params;
+    const { productId } = req.params;
 
-    if (!bookId) {
-        throw new ApiError(400, "bookId is Required");
+    if (!productId) {
+        throw new ApiError(400, "productId is Required");
     }
 
-    const book = await Product.findById(bookId);
+    const product = await Product.findById(productId);
 
-    if (!book) {
+    if (!product) {
         throw new ApiError(404, "Product Not Found");
     }
 
-    // if (book.owner.toString() !== req.user._id.toString()) {
-    //     throw new ApiError(403, "You are not authorized to delete this Product")
-    // }
-
-    const deletedThumbnail = await deleteImageFromCloudinary(book.thumbnail);
+    const deletedThumbnail = await deleteImageFromCloudinary(product.thumbnail);
     if (!deletedThumbnail) {
         throw new ApiError(500, "Thumbnail is not deleted");
     }
 
-    const deleteProduct = await Product.findByIdAndDelete(bookId);
+    const deleteProduct = await Product.findByIdAndDelete(productId);
     if (!deleteProduct) {
         throw new ApiError(500, "Product Not Deleted");
     }
@@ -226,19 +362,19 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
 const updateProduct = asyncHandler(async (req, res) => {
     const { title, description, category, price } = req.body;
-    const { bookId } = req.params;
+    const { productId } = req.params;
 
-    if (!bookId) {
-        throw new ApiError(400, "bookId is Required");
+    if (!productId) {
+        throw new ApiError(400, "productId is Required");
     }
 
-    const book = await Product.findById(bookId);
-    if (!book) {
+    const product = await Product.findById(productId);
+    if (!product) {
         throw new ApiError(404, "Product Not Found");
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
-        bookId,
+        productId,
         {
             $set: {
                 title: title?.toUpperCase(),
@@ -258,23 +394,19 @@ const updateProduct = asyncHandler(async (req, res) => {
 });
 
 const updateProductThumbnail = asyncHandler(async (req, res) => {
-    const { bookId } = req.params;
+    const { productId } = req.params;
 
-    if (!bookId) {
+    if (!productId) {
         throw new ApiError(400, "Product ID is required");
     }
 
-    const book = await Product.findById(bookId);
-    if (!book) {
+    const product = await Product.findById(productId);
+    if (!product) {
         throw new ApiError(404, "Product not found");
     }
 
-    // if (book.owner.toString() !== req.user._id.toString()) {
-    //     throw new ApiError(403, "You are not authorized to update this Product Thumbnail")
-    // }
-
-    if (book.thumbnail) {
-        await deleteImageFromCloudinary(book.thumbnail);
+    if (product.thumbnail) {
+        await deleteImageFromCloudinary(product.thumbnail);
     }
 
     const file = req.file;
@@ -290,7 +422,7 @@ const updateProductThumbnail = asyncHandler(async (req, res) => {
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
-        bookId,
+        productId,
         { thumbnail: uploadedThumbnail.url },
         { new: true }
     );
@@ -306,6 +438,7 @@ export {
     addProduct,
     getProduct,
     getAllProducts,
+    getAllProductsAdmin,
     getCurrentUserProducts,
     deleteProduct,
     updateProduct,

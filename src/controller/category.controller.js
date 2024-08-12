@@ -5,12 +5,52 @@ import asyncHandler from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
 
 const getAllCategories = asyncHandler(async (req, res) => {
-    const categories = await Category.find({ parentCategory: null });
+    const result = await Category.aggregate([
+        // {
+        //     $match: {
+        //         parentCategory: null
+        //     }
+        // },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "_id",
+                foreignField: "parentCategory",
+                as: "subcategories"
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "parentCategory",
+                foreignField: "_id",
+                as: "parentCategoryInfo"
+            }
+        },
+        {
+            $unwind: {
+                path: "$parentCategoryInfo",
+                preserveNullAndEmptyArrays: true // If there's no parent category, keep the null value
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                categoryName: 1,
+                description: 1,
+                parentCategory: 1,
+                parentCategoryName: "$parentCategoryInfo.categoryName",
+                subcategories: {
+                    _id: 1,
+                    categoryName: 1,
+                    description: 1,
+                    products: 1
+                }
+            }
+        }
+    ]);
 
-    const result = await Promise.all(categories.map(async (category) => {
-        const subcategories = await Category.find({ parentCategory: category._id });
-        return { category, subcategories };
-    }));
+    // console.log(result);
 
     if (result.length === 0) {
         throw new ApiError(404, "No categories found");
@@ -22,21 +62,59 @@ const getAllCategories = asyncHandler(async (req, res) => {
 const getCategory = asyncHandler(async (req, res) => {
     const { categoryId } = req.params;
 
-    const category = await Category.findById(categoryId).populate('parentCategory');
+    const result = await Category.aggregate([
+        {
+            $match: {
+                _id: mongoose.Types.ObjectId.createFromHexString(categoryId)
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "_id",
+                foreignField: "parentCategory",
+                as: "subcategories"
+            }
+        },
+        {
+            $lookup: {
+                from: "categories",
+                localField: "parentCategory",
+                foreignField: "_id",
+                as: "parentCategoryInfo"
+            }
+        },
+        {
+            $unwind: {
+                path: "$parentCategoryInfo",
+                preserveNullAndEmptyArrays: true // If there's no parent category, keep the null value
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                categoryName: 1,
+                description: 1,
+                parentCategory: 1,
+                parentCategoryName: "$parentCategoryInfo.categoryName",
+                subcategories: {
+                    _id: 1,
+                    categoryName: 1,
+                    description: 1,
+                    products: 1
+                }
+            }
+        }
+    ]);
 
-    if (!category) {
-        throw new ApiError(404, "Category not found");
-    }
-
-    const subcategories = await Category.find({ parentCategory: categoryId });
-
-    return res.status(200).json(new ApiResponse(200, { category, subcategories }, "Category retrieved successfully"));
+    return res.status(200).json(new ApiResponse(200, result[0], "Category retrieved successfully"));
 });
 
-const addCategory = asyncHandler(async (req, res) => {
-    const { categoryName, parentCategoryId } = req.body;
 
-    if (!categoryName) {
+const addCategory = asyncHandler(async (req, res) => {
+    const { categoryName, description, parentCategoryId } = req.body;
+
+    if (!categoryName && !description) {
         throw new ApiError(400, "Please provide a valid category name");
     }
 
@@ -57,6 +135,7 @@ const addCategory = asyncHandler(async (req, res) => {
 
     const category = await Category.create({
         categoryName,
+        description,
         parentCategory: parentCategoryId || null,
     });
 
@@ -64,11 +143,11 @@ const addCategory = asyncHandler(async (req, res) => {
 });
 
 const updateCategory = asyncHandler(async (req, res) => {
-    const { categoryName } = req.body;
+    const { categoryName, description, parentCategoryName } = req.body;
     const { categoryId } = req.params;
 
-    if (!categoryName || typeof categoryName !== 'string') {
-        throw new ApiError(400, "Please provide a valid category name");
+    if (!categoryName || typeof categoryName !== 'string' || !description || typeof description !== 'string') {
+        throw new ApiError(400, "Please provide valid category name and description");
     }
 
     const category = await Category.findById(categoryId);
@@ -77,11 +156,28 @@ const updateCategory = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Category not found");
     }
 
+    if (parentCategoryName) {
+        const parent = await Category.findOne({ categoryName: parentCategoryName });
+
+        if (!parent) {
+            throw new ApiError(404, "Parent category not found");
+        }
+
+        if (parent._id.equals(category._id)) {
+            throw new ApiError(400, "A category cannot be its own parent");
+        }
+
+        category.parentCategory = parent._id;
+    }
+
+    // Update category details
     category.categoryName = categoryName;
+    category.description = description;
     const updatedCategory = await category.save();
 
     return res.status(200).json(new ApiResponse(200, updatedCategory, "Category updated successfully"));
 });
+
 
 const deleteCategory = asyncHandler(async (req, res) => {
     const { categoryId } = req.params;
@@ -97,7 +193,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 
     await Category.findByIdAndDelete(categoryId);
 
-    return res.status(200).json(new ApiResponse(200, null, "Category and its subcategories deleted successfully"));
+    return res.status(200).json(new ApiResponse(200, category, "Category and its subcategories deleted successfully"));
 });
 
 export {
