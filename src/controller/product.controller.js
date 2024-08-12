@@ -55,8 +55,9 @@ const getAllProducts = asyncHandler(async (req, res) => {
 
 
     const productsPipeline = [
-        { $match: query },
-
+        {
+            $match: query
+        },
         {
             $lookup: {
                 from: "users",
@@ -107,6 +108,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
     ];
 
     const products = await Product.aggregate(productsPipeline);
+    console.log(products)
     const totalProducts = await Product.countDocuments();
     const totalPages = Math.ceil(totalProducts / pageSize);
 
