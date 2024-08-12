@@ -1,6 +1,7 @@
 import cookieParser from "cookie-parser"
 import express from "express"
 import cors from "cors"
+import dashboardRoutes from "./routes/dashboard.routes.js"
 import booksRoutes from "./routes/books.routes.js"
 import productsRoutes from "./routes/product.routes.js"
 import userRoutes from "./routes/user.routes.js"
@@ -28,6 +29,7 @@ app.use(express.urlencoded({
 }))
 
 
+app.use("/api/v1/dashboard", dashboardRoutes)
 app.use("/api/v1/books", booksRoutes)
 app.use("/api/v1/user", userRoutes)
 app.use("/api/v1/roles", rolesRoutes)
