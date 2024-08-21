@@ -4,10 +4,21 @@ import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
-        fullname: {
+        firstName: {
             type: String,
-            required: [true, "Fullname is required"],
+            required: [true, "First Name is required"],
             trim: true
+        },
+        lastName: {
+            type: String,
+            required: [true, "Last Name is required"],
+            trim: true
+        },
+        userName: {
+            type: String,
+            required: [true, "Username is required"],
+            trim: true,
+            unique: [true, "Username already exists"]
         },
         email: {
             type: String,
@@ -30,6 +41,10 @@ const userSchema = new Schema(
         },
         refreshToken: {
             type: String,
+        },
+        address: {
+            type: String,
+            default: "Kohat, Pakistan"
         }
     },
     {

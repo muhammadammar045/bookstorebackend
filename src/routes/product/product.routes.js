@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { addProduct, deleteProduct, getAllProducts, getProduct, getCurrentUserProducts, updateProduct, updateProductThumbnail, getAllProductsAdmin } from "../controller/product.controller.js";
-import { uploadOnMulter } from "../middlewares/multer.middleware.js";
-import { Product } from "../models/product.model.js";
-import { isAuthenticated } from "../middlewares/authentication.middleware.js";
-import { hasPermissions } from "../middlewares/permissions.js";
+
+import { uploadOnMulter } from "../../middlewares/multer.middleware.js";
+import { isAuthenticated } from "../../middlewares/authentication.middleware.js";
+import { hasPermissions } from "../../middlewares/permissions.js";
+import { Product } from "../../models/product/product.model.js";
+import { addProduct, deleteProduct, getAllProducts, getAllProductsAdmin, getCurrentUserProducts, getProduct, getProductsByCategory, updateProduct, updateProductThumbnail } from "../../controller/product/product.controller.js";
 
 const router = Router()
 router.use(isAuthenticated)
@@ -26,6 +27,10 @@ router.
     route("/get-current-user-products")
     .get(hasPermissions(["read"]), getCurrentUserProducts)
 
+router.
+    route("/get-products-by-category/:categoryId")
+    .get(hasPermissions(["read"]), getProductsByCategory)
+
 router
     .route("/get-product/:productId")
     .get(hasPermissions(["read"], Product, "productId"), getProduct)
@@ -40,11 +45,11 @@ router
 
 router
     .route("/add-product")
-    .post(uploadOnMulter.single("thumbnail"), hasPermissions(["create"]), addProduct)
+    .post(uploadOnMulter.single("productThumbnail"), hasPermissions(["create"]), addProduct)
 
 router
     .route("/update-product-thumbnail/:productId")
-    .patch(uploadOnMulter.single("thumbnail"), hasPermissions(["update"], Product, "productId"), updateProductThumbnail)
+    .patch(uploadOnMulter.single("productThumbnail"), hasPermissions(["update"], Product, "productId"), updateProductThumbnail)
 
 
 export default router

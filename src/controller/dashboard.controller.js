@@ -1,11 +1,11 @@
 import { User } from "../models/user.model.js";
-import { Product } from "../models/product.model.js";
 import { Permission } from "../models/permission.model.js";
 import { Role } from "../models/role.model.js";
 import { Category } from "../models/category.model.js";
 
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { Product } from "../models/product/product.model.js";
 
 const getDashboardStats = asyncHandler(async (req, res) => {
     const [userStats, productStats, categoryStats, roleStats, permissionStats] = await Promise.all([

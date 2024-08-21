@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { isAuthenticated } from '../middlewares/authentication.middleware.js';
-import { getLikedProducts, toggleCommentLike, toggleProductLike } from '../controller/like.controller.js';
+import { getLikedProducts, toggleProductLike, toggleReviewLike } from '../controller/like.controller.js';
 
 
 const router = Router();
@@ -11,11 +11,11 @@ router
     .post(toggleProductLike);
 
 router
-    .route('/toggle/c/:commentId')
-    .post(toggleCommentLike);
+    .route('/toggle/r/:reviewId')
+    .post(toggleReviewLike);
 
 router
-    .route('/videos')
+    .route('/liked-products')
     .get(getLikedProducts);
 
 export default router;
