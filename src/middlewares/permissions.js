@@ -47,7 +47,7 @@ export const hasPermissions = (requiredPermissions, Model, paramsIdName) => asyn
             throw new ApiError(404, "Resource not found");
         }
 
-        req.role.isOwner = resource.author.toString() === userId.toString();
+        req.role.isOwner = resource.productOwner.toString() === userId.toString();
 
         // Check permissions based on ownership and user permissions
         const permissions = {

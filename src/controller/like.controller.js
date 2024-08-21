@@ -1,10 +1,10 @@
 import { isValidObjectId } from 'mongoose';
 import { Like } from '../models/like.model.js';
-import { Product } from '../models/product.model.js';
-import { Comment } from '../models/comment.model.js';
 import ApiError from '../utils/ApiError.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { Product } from '../models/product/product.model.js';
+import { Review } from '../models/product/review.model.js';
 
 const toggleProductLike = asyncHandler(async (req, res) => {
     const { productId } = req.params;
@@ -43,47 +43,47 @@ const toggleProductLike = asyncHandler(async (req, res) => {
 
     const message = isLiked ? "Product liked successfully" : "Product unliked successfully";
 
-    return res.status(200).json(new ApiResponse(200, product?.name, message)); // Adjust based on Product fields
+    return res.status(200).json(new ApiResponse(200, product?.productTitle, message));
 });
 
-const toggleCommentLike = asyncHandler(async (req, res) => {
-    const { commentId } = req.params;
+const toggleReviewLike = asyncHandler(async (req, res) => {
+    const { reviewId } = req.params;
 
-    if (!commentId?.trim() || !isValidObjectId(commentId)) {
-        throw new ApiError(400, "Invalid comment id");
+    if (!reviewId?.trim() || !isValidObjectId(reviewId)) {
+        throw new ApiError(400, "Invalid review id");
     }
 
-    const comment = await Comment.findById(commentId);
+    const review = await Review.findById(reviewId);
 
-    if (!comment) {
-        throw new ApiError(404, "Comment not found");
+    if (!review) {
+        throw new ApiError(404, "Review not found");
     }
 
     let isLiked;
 
     const like = await Like.findOne({
-        comment: commentId,
+        review: reviewId,
         likedBy: req.user?._id
     });
 
     if (like) {
         await Like.deleteOne({
-            comment: commentId,
+            review: reviewId,
             likedBy: req.user?._id
         });
         isLiked = false;
     } else {
         const newLike = new Like({
-            comment: commentId,
+            review: reviewId,
             likedBy: req.user?._id
         });
         await newLike.save();
         isLiked = true;
     }
 
-    const message = isLiked ? "Comment liked successfully" : "Comment unliked successfully";
+    const message = isLiked ? "Review liked successfully" : "Review unliked successfully";
 
-    return res.status(200).json(new ApiResponse(200, {}, message));
+    return res.status(200).json(new ApiResponse(200, review?.reviewTitle, message));
 });
 
 const getLikedProducts = asyncHandler(async (req, res) => {
@@ -102,35 +102,88 @@ const getLikedProducts = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: 'products',
-                localField: 'product',
-                foreignField: '_id',
-                as: 'likedProducts',
+                from: "products",
+                localField: "product",
+                foreignField: "_id",
+                as: "productDetails",
                 pipeline: [
                     {
+                        $lookup: {
+                            from: "categories",
+                            localField: "productCategory",
+                            foreignField: "_id",
+                            as: "categoryDetails",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        _id: 1,
+                                        categoryName: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            categoryDetails: {
+                                $first: "$categoryDetails"
+                            }
+                        }
+                    },
+
+                    // OWNER DETAILS
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "productOwner",
+                            foreignField: "_id",
+                            as: "ownerDetails",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        _id: 1,
+                                        profileImage: 1,
+                                        userName: 1,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            ownerDetails: {
+                                $first: "$ownerDetails"
+                            }
+                        }
+                    },
+
+                    {
                         $project: {
-                            title: 1,
-                            price: 1,
-                            description: 1,
-                            thumbnail: 1
+                            _id: 1,
+                            productTitle: 1,
+                            productDescription: 1,
+                            productThumbnail: 1,
+                            productPrice: 1,
+                            categoryDetails: 1,
+                            ownerDetails: 1,
+                            createdAt: 1,
+                            updatedAt: 1,
+
                         }
                     }
                 ]
             }
         },
-        {
-            $addFields: {
-                likedProducts: { $first: '$likedProducts' }
-            }
-        },
+
+
+
+
+        // FINAL STRUCTURE
         {
             $project: {
-                _id: 0,
-                likedProducts: 1
+                _id: 1,
+                productDetails: 1,
             }
-        },
-        {
-            $replaceRoot: { newRoot: '$likedProducts' }
         }
     ]);
 
@@ -139,6 +192,6 @@ const getLikedProducts = asyncHandler(async (req, res) => {
 
 export {
     toggleProductLike,
-    toggleCommentLike,
+    toggleReviewLike,
     getLikedProducts
 };

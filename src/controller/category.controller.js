@@ -110,7 +110,6 @@ const getCategory = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, result[0], "Category retrieved successfully"));
 });
 
-
 const addCategory = asyncHandler(async (req, res) => {
     const { categoryName, description, parentCategoryId } = req.body;
 

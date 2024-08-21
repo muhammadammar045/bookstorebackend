@@ -24,97 +24,94 @@ const generateTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
+    const { firstName, lastName, userName, email, password } = req.body;
 
-    const { fullname, email, password } = req.body;
-
-    if ([fullname, email, password].some((field) => !field || field === "")) {
+    if ([firstName, lastName, userName, email, password].some((field) => !field || field === "")) {
         throw new ApiError(400, "Missing required fields");
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) throw new ApiError(409, "User already exists");
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) throw new ApiError(409, "User with this email already exists");
 
-    const user = new User({ fullname, email, password });
+    const existingUserName = await User.findOne({ userName });
+    if (existingUserName) throw new ApiError(409, "User with this username already exists");
+
+    const user = new User({ firstName, lastName, userName, email, password });
     await user.save();
 
-    const registerUser = await User.findById(user._id).select("-password -refreshToken");
+    const registeredUser = await User.findById(user._id).select("-password -refreshToken");
+
     return res.status(201).json(
-        new ApiResponse(201, registerUser, "User registered successfully")
+        new ApiResponse(201, registeredUser, "User registered successfully")
     );
-
-
 });
 
 const loginUser = asyncHandler(async (req, res) => {
+    const { email, userName, password } = req.body;
 
-    const { email, password } = req.body;
+    if (!password || (!email && !userName)) {
+        throw new ApiError(400, "Missing required fields");
+    }
 
-    if (!email || !password) throw new ApiError(400, "Missing required fields");
-
-    const user = await User.findOne({ email });
-    if (!user) throw new ApiError(404, "User not found");
-
-    const userId = user._id;
+    const user = await User.findOne({ $or: [{ email }, { userName }] });
+    const userId = user?._id
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
 
     const comparedPassword = await user.ComparePassword(password);
-    if (!comparedPassword) throw new ApiError(401, "Invalid credentials");
+    if (!comparedPassword) {
+        throw new ApiError(401, "Invalid credentials");
+    }
 
-    // const loggedUser = await User
-    //     .findById(user._id)
-    //     .populate({
-    //         path: "role",
-    //         populate: {
-    //             path: "permissions",
-    //         }
-    //     })
-    //     .select("-password -refreshToken");
-
-    const loggedUser = await User.aggregate(
-        [
-            {
-                $match: {
-                    _id: new mongoose.Types.ObjectId(userId),
-                }
-            },
-            {
-                $lookup: {
-                    from: "roles",
-                    localField: "role",
-                    foreignField: "_id",
-                    as: "role"
-                }
-            },
-            {
-                $unwind: "$role"
-            },
-            {
-                $lookup: {
-                    from: "permissions",
-                    localField: "role.permissions",
-                    foreignField: "_id",
-                    as: "permissions"
-                }
-            },
-
-            {
-                $project: {
-                    _id: 1,
-                    fullname: 1,
-                    email: 1,
-                    profileImage: 1,
-                    roleName: "$role.roleName",
-                    permissions: {
-                        $map: {
-                            input: "$permissions",
-                            as: "perm",
-                            in: "$$perm.permissionName"
-                        }
+    const loggedUser = await User.aggregate([
+        {
+            $match: {
+                _id: userId,
+            }
+        },
+        {
+            $lookup: {
+                from: "roles",
+                localField: "role",
+                foreignField: "_id",
+                as: "role"
+            }
+        },
+        {
+            $unwind: "$role"
+        },
+        {
+            $lookup: {
+                from: "permissions",
+                localField: "role.permissions",
+                foreignField: "_id",
+                as: "permissions"
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                firstName: 1,
+                lastName: 1,
+                fullName: {
+                    $concat: ["$firstName", " ", "$lastName"]
+                },
+                email: 1,
+                userName: 1,
+                profileImage: 1,
+                roleName: "$role.roleName",
+                address: 1,
+                permissions: {
+                    $map: {
+                        input: "$permissions",
+                        as: "perm",
+                        in: "$$perm.permissionName"
                     }
                 }
             }
-
-        ]
-    )
+        }
+    ]);
 
     const { accessToken, refreshToken } = await generateTokens(user._id);
 
@@ -124,7 +121,6 @@ const loginUser = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(200, { user: loggedUser[0], accessToken, refreshToken }, "User logged in successfully")
         );
-
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -182,9 +178,15 @@ const getUser = asyncHandler(async (req, res) => {
             {
                 $project: {
                     _id: 1,
-                    fullname: 1,
+                    firstName: 1,
+                    lastName: 1,
+                    fullName: {
+                        $concat: ["$firstName", " ", "$lastName"]
+                    },
                     email: 1,
+                    userName: 1,
                     profileImage: 1,
+                    address: 1,
                     roleName: "$role.roleName",
                     createdAt: 1,
                     updatedAt: 1,
@@ -208,19 +210,19 @@ const getUser = asyncHandler(async (req, res) => {
 
 const updateUser = asyncHandler(async (req, res) => {
     const { userId } = req.params;
-    const { fullname, email } = req.body;
+    const { firstName, lastName, userName, email } = req.body;
 
-    // Validate input
-    if ([fullname, email].some(field => !field || !field.trim())) {
+    if ([firstName, lastName, userName, email].some(field => !field || !field.trim())) {
         throw new ApiError(400, "Invalid input");
     }
 
-    // Update user details
     const updatedUser = await User.findByIdAndUpdate(
         userId,
         {
             $set: {
-                fullname,
+                firstName,
+                lastName,
+                userName,
                 email,
             }
         },
@@ -231,9 +233,13 @@ const updateUser = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    // Aggregate to get role and permissions
     const aggregatedUser = await User.aggregate([
-        { $match: { _id: updatedUser._id } },
+        {
+            $match:
+            {
+                _id: updatedUser._id
+            }
+        },
         {
             $lookup: {
                 from: "roles",
@@ -254,16 +260,23 @@ const updateUser = asyncHandler(async (req, res) => {
         {
             $project: {
                 _id: 1,
-                fullname: 1,
+                firstName: 1,
+                lastName: 1,
+                fullName: {
+                    $concat: ["$firstName", " ", "$lastName"]
+                },
                 email: 1,
+                userName: 1,
+                profileImage: 1,
+                address: 1,
                 roleName: "$role.roleName",
                 createdAt: 1,
                 updatedAt: 1,
                 permissions: {
                     $map: {
                         input: "$permissions",
-                        as: "permission",
-                        in: "$$permission.permissionName"
+                        as: "perm",
+                        in: "$$perm.permissionName"
                     }
                 }
             }
@@ -279,7 +292,10 @@ const updateUser = asyncHandler(async (req, res) => {
 
 const deleteUser = asyncHandler(async (req, res) => {
     const { userId } = req.params
-    const deletedUser = await User.findByIdAndDelete(userId).select("-password -refreshToken");
+    const deletedUser = await User
+        .findByIdAndDelete(userId)
+        .select("-password -refreshToken");
+
     if (!deletedUser) throw new ApiError(404, "User not deleted");
 
     return res.status(200).json(new ApiResponse(200, deletedUser, "User deleted successfully"));
@@ -311,9 +327,15 @@ const getAllUsers = asyncHandler(async (req, res) => {
         {
             $project: {
                 _id: 1,
-                fullname: 1,
+                firstName: 1,
+                lastName: 1,
+                fullName: {
+                    $concat: ["$firstName", " ", "$lastName"]
+                },
                 email: 1,
+                userName: 1,
                 profileImage: 1,
+                address: 1,
                 roleName: "$role.roleName",
                 createdAt: 1,
                 updatedAt: 1,

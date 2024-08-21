@@ -4,16 +4,12 @@ const likeSchema = new Schema({
     product: {
         type: Schema.Types.ObjectId,
         ref: "Product",
-        required: function () {
-            return !this.comment;
-        }
+
     },
-    comment: {
+    review: {
         type: Schema.Types.ObjectId,
-        ref: "Comment",
-        required: function () {
-            return !this.product;
-        }
+        ref: "Review",
+
     },
     likedBy: {
         type: Schema.Types.ObjectId,
