@@ -11,16 +11,15 @@ const productSchema = new Schema(
             type: String,
             required: [true, 'Product description is required'],
         },
+        productCategory: {
+            type: Schema.Types.ObjectId,
+            ref: 'Category',
+            default: null
+        },
         productPrice: {
             type: Number,
             required: [true, 'Product price is required'],
             min: [0, 'Product price must be a positive number']
-        },
-        productCategory: {
-            type: Schema.Types.ObjectId,
-            ref: 'Category',
-            default: "General",
-            required: [true, 'Product category is required']
         },
         productThumbnail: {
             type: String,
@@ -46,18 +45,6 @@ const productSchema = new Schema(
             required: [true, 'Product quantity is required'],
             min: [0, 'Product quantity must be a non-negative number']
         },
-        productReviews: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: 'Review',
-            }
-        ],
-        productVariants: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: 'Variant'
-            }
-        ],
         productOwner: {
             type: Schema.Types.ObjectId,
             ref: 'User',

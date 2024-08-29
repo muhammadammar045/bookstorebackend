@@ -10,7 +10,9 @@ import productVariantsRoutes from "./routes/product/productVariants.routes.js"
 import categoryRoutes from "./routes/category.routes.js"
 import likeRoutes from "./routes/like.routes.js"
 import reviewRoutes from "./routes/product/review.routes.js"
-import ratingRoutes from "./routes/rating.routes.js"
+import cartRoutes from "./routes/cart.routes.js"
+import orderRoutes from "./routes/order.routes.js"
+import paymentRoutes from "./routes/payment.routes.js"
 
 const app = express()
 
@@ -37,8 +39,10 @@ app.use("/api/v1/categories", categoryRoutes)
 app.use("/api/v1/products", productsRoutes)
 app.use("/api/v1/product-variants", productVariantsRoutes)
 app.use("/api/v1/likes", likeRoutes)
-app.use("/api/v1/ratings", ratingRoutes)
 app.use("/api/v1/reviews", reviewRoutes)
+app.use("/api/v1/cart", cartRoutes)
+app.use("/api/v1/order", orderRoutes)
+app.use("/api/v1/payments", paymentRoutes)
 
 app.use((err, req, res, next) => {
     const statusCode = err.status || 500;

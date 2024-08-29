@@ -4,7 +4,7 @@ import { uploadOnMulter } from "../../middlewares/multer.middleware.js";
 import { isAuthenticated } from "../../middlewares/authentication.middleware.js";
 import { hasPermissions } from "../../middlewares/permissions.js";
 import { Product } from "../../models/product/product.model.js";
-import { addProduct, deleteProduct, getAllProducts, getAllProductsAdmin, getCurrentUserProducts, getProduct, getProductsByCategory, updateProduct, updateProductThumbnail } from "../../controller/product/product.controller.js";
+import { addProduct, deleteProduct, getAllProducts, getAllProductsAdmin, getCurrentUserProducts, getProduct, updateProduct, updateProductThumbnail } from "../../controller/product/product.controller.js";
 
 const router = Router()
 router.use(isAuthenticated)
@@ -27,9 +27,7 @@ router.
     route("/get-current-user-products")
     .get(hasPermissions(["read"]), getCurrentUserProducts)
 
-router.
-    route("/get-products-by-category/:categoryId")
-    .get(hasPermissions(["read"]), getProductsByCategory)
+
 
 router
     .route("/get-product/:productId")
@@ -45,7 +43,10 @@ router
 
 router
     .route("/add-product")
-    .post(uploadOnMulter.single("productThumbnail"), hasPermissions(["create"]), addProduct)
+    .post(uploadOnMulter.fields([
+        { name: "productImages", maxCount: 7 },
+        { name: "productThumbnail", maxCount: 1 }
+    ]), hasPermissions(["create"]), addProduct)
 
 router
     .route("/update-product-thumbnail/:productId")

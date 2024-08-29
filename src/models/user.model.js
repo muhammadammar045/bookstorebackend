@@ -39,6 +39,9 @@ const userSchema = new Schema(
             type: String,
             default: "https://res.cloudinary.com/ammardata/image/upload/v1721213653/mp0l52imhgwsx8qca1pm.png"
         },
+        coverImage: {
+            type: String,
+        },
         refreshToken: {
             type: String,
         },
