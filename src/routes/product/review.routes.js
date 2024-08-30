@@ -9,11 +9,11 @@ const router = Router();
 router.use(isAuthenticated);
 
 router
-    .route("/add-review")
+    .route("/add-review/:productId")
     .post(hasPermissions(["create"]), createReview);
 
 router
-    .route("/get-reviews/:productId")
+    .route("/get-product-reviews/:productId")
     .get(hasPermissions(["read"], Review, "productId"), getReviewsByProduct);
 
 router

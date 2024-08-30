@@ -2,33 +2,24 @@ import mongoose, { isValidObjectId } from "mongoose";
 import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import { Category } from "../../models/category.model.js";
-import { deleteImageFromCloudinary, uploadImageToCloudinary } from "../../utils/Cloudinary.js";
+import { deleteImageFromCloudinary, uploadImageToCloudinary, uploadMultipleImagesToCloudinary, deleteImagesFromCloudinary } from "../../utils/Cloudinary.js";
 import path from "path";
 import asyncHandler from "../../utils/asyncHandler.js";
 import { Product } from "../../models/product/product.model.js";
 
 const addProduct = asyncHandler(async (req, res) => {
-    const { productTitle, productDescription, productPrice, productCategoryName, productQuantity } = req.body;
+    const { productTitle, productDescription, productPrice, productQuantity } = req.body;
 
-    // Check for required fields
-    if ([productTitle, productDescription, productPrice, productCategoryName, productQuantity].some((field) => !field || field.trim() === "")) {
-        throw new ApiError(400, "Please fill all the required fields (productTitle, productDescription, productPrice, productCategoryName, productQuantity)");
+    if ([productTitle, productDescription, productPrice, productQuantity].some((field) => !field || field.trim() === "")) {
+        throw new ApiError(400, "Please fill all the required fields (productTitle, productDescription, productPrice, productQuantity)");
     }
 
-    // Check for existing product
     const existingProduct = await Product.findOne({ productTitle });
     if (existingProduct) {
         throw new ApiError(400, "Product with this title already exists");
     }
 
-    // Find the category by name
-    const existingCategory = await Category.findOne({ categoryName: productCategoryName });
-    if (!existingCategory) {
-        throw new ApiError(400, "Category does not exist");
-    }
-
-    // Handle thumbnail upload
-    const thumbnailPath = req?.file?.path;
+    const thumbnailPath = req.files?.productThumbnail?.[0]?.path;
     if (!thumbnailPath) {
         throw new ApiError(400, "Thumbnail path not found in request");
     }
@@ -38,14 +29,24 @@ const addProduct = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Failed to upload thumbnail to Cloudinary");
     }
 
-    // Create the product
+    const imagePaths = req.files?.productImages?.map(file => file.path);
+    let uploadedImages = [];
+
+    if (imagePaths && imagePaths.length > 0) {
+        uploadedImages = await uploadMultipleImagesToCloudinary(imagePaths);
+
+        if (!uploadedImages || uploadedImages.some(img => !img.url)) {
+            throw new ApiError(400, "Failed to upload one or more images to Cloudinary");
+        }
+    }
+
     const createProduct = await Product.create({
         productTitle: productTitle?.toUpperCase(),
         productDescription,
         productPrice,
         productQuantity,
-        productCategory: existingCategory._id,
         productThumbnail: uploadedThumbnail?.url,
+        productImages: uploadedImages.map(img => img.url),
         productOwner: req.user?._id
     });
 
@@ -58,12 +59,19 @@ const addProduct = asyncHandler(async (req, res) => {
 
 
 const getAllProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, q = "" } = req.query;
+    const {
+        page = 1,
+        limit = 10,
+        q = "",
+        sortField = "createdAt",
+        sortOrder = "desc"
+    } = req.query;
 
-    const pageNumber = parseInt(page, 10);
-    const pageSize = parseInt(limit, 10);
-
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const pageSize = Math.max(parseInt(limit, 10) || 10, 1);
+    const order = sortOrder.toLowerCase() === "asc" ? 1 : -1;
     const query = q ? { productTitle: new RegExp(q, 'i') } : {};
+
 
     const productsPipeline = [
         // FILTER PRODUCT
@@ -146,8 +154,6 @@ const getAllProducts = asyncHandler(async (req, res) => {
             }
         },
 
-
-
         // USER LIKE STATUS
         {
             $lookup: {
@@ -174,6 +180,11 @@ const getAllProducts = asyncHandler(async (req, res) => {
             }
         },
 
+        // SORTING
+        {
+            $sort: { [sortField]: order }
+        },
+
         // FINAL STRUCTURE
         {
             $project: {
@@ -190,39 +201,40 @@ const getAllProducts = asyncHandler(async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
             }
-        }
+        },
 
+        // PAGINATION
+        { $skip: (pageNumber - 1) * pageSize },
+        { $limit: pageSize }
     ];
 
+    const totalProducts = await Product.countDocuments(query);
+    const totalPages = Math.ceil(totalProducts / pageSize);
 
-    const options = {
-        page: pageNumber,
-        limit: pageSize,
-    };
-
-    const result = await Product.aggregatePaginate(productsPipeline, options);
+    const products = await Product.aggregate(productsPipeline);
 
     const response = {
         success: true,
-        count: result.docs.length,
-        totalProducts: result.totalDocs,
-        totalPages: result.totalPages,
-        currentPage: result.page,
-        pageSize: result.limit,
-        products: result.docs,
+        count: products.length,
+        totalProducts,
+        totalPages,
+        currentPage: pageNumber,
+        pageSize,
+        products,
     };
 
-    return res.status(200).json(new ApiResponse(200, response, "All products fetched with pagination"));
+    return res.status(200).json(new ApiResponse(200, response, "All products fetched with pagination and sorting"));
 });
 
-const getAllProductsAdmin = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
 
-    const pageNumber = parseInt(page, 10);
-    const pageSize = parseInt(limit, 10);
+const getAllProductsAdmin = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 10, sortField = "createdAt", sortOrder = "desc" } = req.query;
+
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const pageSize = Math.max(parseInt(limit, 10) || 10, 1);
+    const order = sortOrder.toLowerCase() === "asc" ? 1 : -1;
 
     const productsPipeline = [
-
         // CATEGORY DETAILS
         {
             $lookup: {
@@ -291,6 +303,11 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
             }
         },
 
+        // SORTING
+        {
+            $sort: { [sortField]: order }
+        },
+
         // FINAL STRUCTURE
         {
             $project: {
@@ -305,45 +322,55 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
             }
-        }
+        },
+
+        // PAGINATION
+        { $skip: (pageNumber - 1) * pageSize },
+        { $limit: pageSize }
     ];
 
-    // const options = {
-    //     page: pageNumber,
-    //     limit: pageSize,
-    // };
+    const totalProducts = await Product.countDocuments();
+    const totalPages = Math.ceil(totalProducts / pageSize);
 
-    const result = await Product.aggregatePaginate(productsPipeline);
+    const products = await Product.aggregate(productsPipeline);
 
     const response = {
         success: true,
-        count: result.docs.length,
-        totalProducts: result.totalDocs,
-        totalPages: result.totalPages,
-        currentPage: result.page,
-        pageSize: result.limit,
-        products: result.docs,
+        count: products.length,
+        totalProducts,
+        totalPages,
+        currentPage: pageNumber,
+        pageSize,
+        products,
     };
 
-    return res.status(200).json(new ApiResponse(200, response, "All products fetched with pagination"));
+    return res.status(200).json(new ApiResponse(200, response, "All products fetched with pagination and sorting"));
 });
 
+
 const getCurrentUserProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, q = "" } = req.query;
+    const {
+        page = 1,
+        limit = 10,
+        q = "",
+        sortField = "createdAt",
+        sortOrder = "desc"
+    } = req.query;
+
     const userId = req.user._id;
 
-    const pageNumber = parseInt(page, 10);
-    const pageSize = parseInt(limit, 10);
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const pageSize = Math.max(parseInt(limit, 10) || 10, 1);
+    const order = sortOrder.toLowerCase() === "asc" ? 1 : -1;
 
-    const query = q ? { productTitle: new RegExp(q, 'i') } : {};
+    // Query to filter by product title and product owner
+    const query = {
+        productOwner: userId,
+        ...(q && { productTitle: new RegExp(q, 'i') })
+    };
 
     const productsPipeline = [
         // FILTER PRODUCT
-        {
-            $match: {
-                productOwner: userId
-            }
-        },
         {
             $match: query
         },
@@ -416,6 +443,11 @@ const getCurrentUserProducts = asyncHandler(async (req, res) => {
             }
         },
 
+        // SORTING
+        {
+            $sort: { [sortField]: order }
+        },
+
         // FINAL STRUCTURE
         {
             $project: {
@@ -430,29 +462,32 @@ const getCurrentUserProducts = asyncHandler(async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
             }
-        }
+        },
 
+        // PAGINATION
+        { $skip: (pageNumber - 1) * pageSize },
+        { $limit: pageSize }
     ];
 
-    const options = {
-        page: pageNumber,
-        limit: pageSize,
-    };
+    const totalProducts = await Product.countDocuments(query);
+    const totalPages = Math.ceil(totalProducts / pageSize);
 
-    const result = await Product.aggregatePaginate(productsPipeline, options);
+    const products = await Product.aggregate(productsPipeline);
 
     const response = {
         success: true,
-        count: result.docs.length,
-        totalProducts: result.totalDocs,
-        totalPages: result.totalPages,
-        currentPage: result.page,
-        pageSize: result.limit,
-        products: result.docs,
+        count: products.length,
+        totalProducts,
+        totalPages,
+        currentPage: pageNumber,
+        pageSize,
+        products,
     };
 
-    return res.status(200).json(new ApiResponse(200, response, "Products for the user fetched with pagination"));
+    return res.status(200).json(new ApiResponse(200, response, "User's products fetched with pagination and sorting"));
 });
+
+
 
 const getProduct = asyncHandler(async (req, res) => {
     const { productId } = req.params;
@@ -720,6 +755,7 @@ const getProduct = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, { product, isOwner }, "Product Fetched Successfully"));
 });
 
+
 const deleteProduct = asyncHandler(async (req, res) => {
     const { productId } = req.params;
 
@@ -733,18 +769,29 @@ const deleteProduct = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Product Not Found");
     }
 
-    const deletedThumbnail = await deleteImageFromCloudinary(product.thumbnail);
+    // Delete the thumbnail
+    const deletedThumbnail = await deleteImageFromCloudinary(product.productThumbnail);
     if (!deletedThumbnail) {
         throw new ApiError(500, "Thumbnail is not deleted");
     }
 
-    const deleteProduct = await Product.findByIdAndDelete(productId);
-    if (!deleteProduct) {
+    // Delete additional images if they exist
+    if (product.productImages && product.productImages.length > 0) {
+        const deletedImages = await deleteImagesFromCloudinary(product.productImages);
+        if (!deletedImages) {
+            throw new ApiError(500, "Some product images were not deleted");
+        }
+    }
+
+    // Delete the product from the database
+    const deletedProduct = await Product.findByIdAndDelete(productId);
+    if (!deletedProduct) {
         throw new ApiError(500, "Product Not Deleted");
     }
 
-    return res.status(200).json(new ApiResponse(200, deleteProduct, "Product Deleted Successfully"));
+    return res.status(200).json(new ApiResponse(200, deletedProduct, "Product Deleted Successfully"));
 });
+
 
 const updateProduct = asyncHandler(async (req, res) => {
     const { productTitle, productDescription, productCategory, productPrice } = req.body;
@@ -788,6 +835,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, updatedProduct, "Product updated successfully"));
 });
 
+
 const updateProductThumbnail = asyncHandler(async (req, res) => {
     const { productId } = req.params;
 
@@ -830,78 +878,6 @@ const updateProductThumbnail = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, updatedProduct, "Product thumbnail updated successfully"));
 });
 
-const getProductsByCategory = asyncHandler(async (req, res) => {
-    const { categoryId } = req.params;
-    const { page = 1, limit = 10, q = '' } = req.query;
-
-    const matchStage = {
-        $match: {
-            productCategory: mongoose.Types.ObjectId.createFromHexString(categoryId),
-        },
-    };
-
-    if (q) {
-        matchStage.$match.name = { $regex: q, $options: 'i' }; // Case-insensitive search
-    }
-
-    const pipeline = [
-        matchStage,
-        {
-            $lookup: {
-                from: 'categories',
-                localField: 'productCategory',
-                foreignField: '_id',
-                as: 'productCategory',
-            },
-        },
-        {
-            $unwind: '$productCategory',
-        },
-        {
-            $lookup: {
-                from: 'users',
-                localField: 'productOwner',
-                foreignField: '_id',
-                as: 'productOwner'
-            }
-        },
-        {
-            $unwind: {
-                path: '$productOwner',
-            }
-        }
-        ,
-
-        {
-            $project: {
-                _id: 1,
-                productTitle: 1,
-                productDescription: 1,
-                productPrice: 1,
-                thumbnail: 1,
-                productCategory: {
-                    _id: "$productCategory._id",
-                    name: "$productCategory.categoryName"
-                },
-                productOwner: {
-                    _id: "$productOwner._id",
-                    fullName: "$productOwner.fullName",
-                }
-
-                // include other fields as necessary...
-            },
-        },
-    ];
-
-    const options = {
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
-    };
-
-    const result = await Product.aggregatePaginate(Product.aggregate(pipeline), options);
-
-    res.status(200).json(new ApiResponse(200, result, 'Products retrieved successfully'));
-});
 
 export {
     addProduct,
@@ -912,5 +888,4 @@ export {
     deleteProduct,
     updateProduct,
     updateProductThumbnail,
-    getProductsByCategory,
 };

@@ -51,4 +51,71 @@ const deleteImageFromCloudinary = async (fileUrl) => {
     }
 };
 
-export { uploadImageToCloudinary, deleteImageFromCloudinary };
+const uploadMultipleImagesToCloudinary = async (filePaths) => {
+    try {
+        if (!filePaths || filePaths.length === 0) return null;
+
+        const uploadedFiles = await Promise
+            .all(
+                filePaths
+                    .map(
+                        async (filePath) => {
+                            const uploadedFile = await cloudinary.uploader.upload(
+                                filePath,
+                                {
+                                    resource_type: 'auto',
+                                }
+                            );
+                            fs.unlinkSync(filePath);
+
+                            return uploadedFile;
+                        }
+                    )
+            );
+
+        return uploadedFiles;
+
+    } catch (error) {
+        console.log(chalk.red(`Cloudinary File Uploading Error ==> ${error.message}`));
+        return null;
+    }
+}
+
+const deleteImagesFromCloudinary = async (fileUrls, resourceType = 'image') => {
+    try {
+        if (!Array.isArray(fileUrls) || fileUrls.length === 0) {
+            return null;
+        }
+
+        const deletedFiles = await Promise
+            .all(fileUrls
+                .map(async (fileUrl) => {
+                    const filePath = extractPublicId(fileUrl);
+                    const deletedFile = await cloudinary.uploader.destroy(
+                        filePath,
+                        {
+                            resource_type: resourceType
+                        }
+                    );
+                    return deletedFile;
+                }
+                )
+            );
+
+        // Log the result of deletion for each file
+        deletedFiles.forEach((deletedFile, index) => {
+            if (deletedFile.result === 'ok') {
+                console.log(chalk.blue(`File ${index + 1} deleted successfully.`));
+            } else {
+                console.log(chalk.red(`Failed to delete file ${index + 1}. Error: ${deletedFile.error.message}`));
+            }
+        });
+
+        return deletedFiles;
+    } catch (error) {
+        console.log(chalk.red(`Cloudinary File Deleting Error ==> ${error.message}`));
+        return null;
+    }
+}
+
+export { uploadImageToCloudinary, uploadMultipleImagesToCloudinary, deleteImageFromCloudinary, deleteImagesFromCloudinary };

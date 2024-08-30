@@ -17,8 +17,11 @@ router
     });
 
 router
-    .route("/add-product-variant")
-    .post(uploadOnMulter.single("productVariantThumbnail"), hasPermissions(["create"]), createProductVariant);
+    .route("/add-product-variant/:productId")
+    .post(uploadOnMulter.fields([
+        { name: "productVariantImages", maxCount: 7 },
+        { name: "productVariantThumbnail", maxCount: 1 }
+    ]), hasPermissions(["create"]), createProductVariant);
 
 router
     .route("/add-product-variant-color")
@@ -28,7 +31,7 @@ router
     .post(hasPermissions(["create"]), createProductVariantSize);
 
 router
-    .route("/get-variant/:variantId")
+    .route("/get-product-variant/:variantId")
     .get(hasPermissions(["read"], ProductVariant, "variantId"), getProductVariantById);
 
 router

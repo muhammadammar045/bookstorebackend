@@ -24,20 +24,26 @@ const productVariantSchema = new Schema(
         productVariantSize: {
             type: Schema.Types.ObjectId,
             ref: "ProductSize",
-            required: true
+            default: null
         },
         productVariantColor: {
             type: Schema.Types.ObjectId,
             ref: "ProductColor",
-            required: true
+            default: null
         },
         productVariantQuantity: {
             type: Number,
-            required: true
+            required: function () {
+                return !this.productVariants || this.productVariants.length === 0;
+            },
+            min: [0, 'Product quantity must be a non-negative number'],
         },
         productVariantPrice: {
             type: Number,
-            required: true
+            required: function () {
+                return !this.productVariants || this.productVariants.length === 0;
+            },
+            min: [0, 'Product price must be a positive number'],
         },
         product: {
             type: Schema.Types.ObjectId,
