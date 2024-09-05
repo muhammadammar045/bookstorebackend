@@ -4,7 +4,7 @@ const AddressSchema = new Schema(
     {
         fullAddress: {
             type: String,
-            req: true
+            required: true
         },
         street: {
             type: String,
@@ -58,6 +58,7 @@ const OrderSchema = new Schema({
         enum: ['Processing', 'Shipped', 'Delivered', 'Cancelled'],
         default: 'Processing'
     },
+
     totalPrice: {
         type: Number,
         required: true

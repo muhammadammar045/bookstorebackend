@@ -3,7 +3,7 @@ import { Product } from "../../models/product/product.model.js";
 import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import asyncHandler from "../../utils/asyncHandler.js";
-import { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 
 const createReview = asyncHandler(async (req, res) => {
     const { reviewTitle, reviewBody, reviewRating } = req.body;
@@ -71,21 +71,108 @@ const getReviewsByProduct = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid product ID");
     }
 
-    const reviews = await Review
-        .find
-        (
-            {
-                reviewProduct: productId
+    const reviews = await Review.aggregate([
+        {
+            $match: {
+                reviewProduct: mongoose.Types.ObjectId.createFromHexString(productId)
             }
-        )
-        .populate("reviewAuthor", "userName");
+        },
 
-    if (!reviews || reviews.length === 0) {
-        throw new ApiError(404, "No reviews found for this product");
-    }
+        // OWNER DETAILS
+        {
+            $lookup: {
+                from: "users",
+                localField: "reviewAuthor",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            _id: 1,
+                            profileImage: 1,
+                            userName: 1,
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                ownerDetails: {
+                    $first: "$ownerDetails"
+                }
+            }
+        },
 
-    return res.status(200).json(new ApiResponse(200, reviews, "Reviews retrieved successfully"));
+        // PROJECT FIELDS
+        {
+            $project: {
+                ownerDetails: 1,
+                reviewTitle: 1,
+                reviewBody: 1,
+                reviewRating: 1,
+                createdAt: 1
+            }
+        },
+
+        // GROUP STAGE FOR AGGREGATIONS
+        {
+            $group: {
+                _id: null,
+                reviews: { $push: "$$ROOT" },
+                reviewCount: { $sum: 1 },
+                averageRating: { $avg: "$reviewRating" },
+                starCount: {
+                    $push: {
+                        star: "$reviewRating",
+                        count: { $sum: 1 }
+                    }
+                }
+            }
+        },
+
+        // PROJECT FINAL OUTPUT
+        {
+            $project: {
+                _id: 0,
+                reviews: 1,
+                reviewCount: 1,
+                averageRating: { $round: ["$averageRating", 1] },
+                individualStarCount: {
+                    $reduce: {
+                        input: "$reviews",
+                        initialValue: {
+                            oneStar: 0,
+                            twoStar: 0,
+                            threeStar: 0,
+                            fourStar: 0,
+                            fiveStar: 0
+                        },
+                        in: {
+                            oneStar: {
+                                $cond:
+                                    [
+                                        { $eq: ["$$this.reviewRating", 1] },
+                                        { $add: ["$$value.oneStar", 1] },
+                                        "$$value.oneStar"
+                                    ]
+                            },
+                            twoStar: { $cond: [{ $eq: ["$$this.reviewRating", 2] }, { $add: ["$$value.twoStar", 1] }, "$$value.twoStar"] },
+                            threeStar: { $cond: [{ $eq: ["$$this.reviewRating", 3] }, { $add: ["$$value.threeStar", 1] }, "$$value.threeStar"] },
+                            fourStar: { $cond: [{ $eq: ["$$this.reviewRating", 4] }, { $add: ["$$value.fourStar", 1] }, "$$value.fourStar"] },
+                            fiveStar: { $cond: [{ $eq: ["$$this.reviewRating", 5] }, { $add: ["$$value.fiveStar", 1] }, "$$value.fiveStar"] }
+                        }
+                    }
+                }
+            }
+        }
+    ]);
+
+
+
+    return res.status(200).json(new ApiResponse(200, reviews[0], "Reviews retrieved successfully"));
 });
+
 
 
 const updateReview = asyncHandler(async (req, res) => {

@@ -43,7 +43,7 @@ const toggleProductLike = asyncHandler(async (req, res) => {
 
     const message = isLiked ? "Product liked successfully" : "Product unliked successfully";
 
-    return res.status(200).json(new ApiResponse(200, product?.productTitle, message));
+    return res.status(200).json(new ApiResponse(200, product, message));
 });
 
 const toggleReviewLike = asyncHandler(async (req, res) => {

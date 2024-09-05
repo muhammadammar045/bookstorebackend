@@ -13,6 +13,7 @@ import reviewRoutes from "./routes/product/review.routes.js"
 import cartRoutes from "./routes/cart.routes.js"
 import orderRoutes from "./routes/order.routes.js"
 import paymentRoutes from "./routes/payment.routes.js"
+import bodyParser from "body-parser"
 
 const app = express()
 
@@ -22,6 +23,10 @@ app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true,
 }))
+
+app.use("/api/v1/payments", bodyParser.raw({ type: 'application/json' }), paymentRoutes)
+
+
 app.use(express.json({
     limit: "16kb"
 }))
@@ -29,6 +34,8 @@ app.use(express.urlencoded({
     limit: "16kb",
     extended: true
 }))
+app.use(express.raw({ type: 'application/json' }));
+
 
 
 app.use("/api/v1/dashboard", dashboardRoutes)
@@ -42,7 +49,6 @@ app.use("/api/v1/likes", likeRoutes)
 app.use("/api/v1/reviews", reviewRoutes)
 app.use("/api/v1/cart", cartRoutes)
 app.use("/api/v1/order", orderRoutes)
-app.use("/api/v1/payments", paymentRoutes)
 
 app.use((err, req, res, next) => {
     const statusCode = err.status || 500;
