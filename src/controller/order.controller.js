@@ -19,7 +19,6 @@ const createOrder = asyncHandler(async (req, res) => {
             }
         )
         .populate('cartItems.product');
-    console.log(cart)
 
     if (!cart || cart.cartItems.length === 0) {
         throw new ApiError(400, "Your cart is empty");
@@ -53,7 +52,6 @@ const createOrder = asyncHandler(async (req, res) => {
     cart.cartItems = [];
     await cart.save();
 
-    console.log(cart)
     return res.status(200).json(new ApiResponse(200, order, "Order created successfully"));
 
 });

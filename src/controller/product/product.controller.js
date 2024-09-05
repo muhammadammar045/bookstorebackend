@@ -79,30 +79,6 @@ const getAllProducts = asyncHandler(async (req, res) => {
             $match: query
         },
 
-        // CATEGORY DETAILS
-        {
-            $lookup: {
-                from: "categories",
-                localField: "productCategory",
-                foreignField: "_id",
-                as: "categoryDetails",
-                pipeline: [
-                    {
-                        $project: {
-                            _id: 1,
-                            categoryName: 1
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            $addFields: {
-                categoryDetails: {
-                    $first: "$categoryDetails"
-                }
-            }
-        },
 
         // OWNER DETAILS
         {
@@ -130,29 +106,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
             }
         },
 
-        // PRODUCT REVIEWS
-        {
-            $lookup: {
-                from: "reviews",
-                localField: "productReviews",
-                foreignField: "_id",
-                as: "productReviews",
-            }
-        },
 
-        // ADD REVIEW COUNT AND AVERAGE RATING
-        {
-            $addFields: {
-                productReviewsCount: { $size: "$productReviews" },
-                productAverageRating: {
-                    $cond: {
-                        if: { $gt: [{ $size: "$productReviews" }, 0] },
-                        then: { $round: [{ $avg: "$productReviews.reviewRating" }, 1] }, // Round to 1 decimal place
-                        else: 0 // or null if you prefer
-                    }
-                }
-            }
-        },
 
         // USER LIKE STATUS
         {
@@ -564,41 +518,41 @@ const getProduct = asyncHandler(async (req, res) => {
                 localField: "productReviews",
                 foreignField: "_id",
                 as: "productReviews",
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "reviewAuthor",
-                            foreignField: "_id",
-                            as: "reviewAuthor",
-                            pipeline: [
-                                {
-                                    $project: {
-                                        _id: 1,
-                                        profileImage: 1,
-                                        userName: 1,
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        $addFields: {
-                            reviewAuthor: { $first: "$reviewAuthor" }
-                        }
-                    },
-                    {
-                        $project: {
-                            _id: 1,
-                            reviewTitle: 1,
-                            reviewBody: 1,
-                            reviewRating: 1,
-                            reviewAuthor: 1,
-                            reviewCount: 1,
-                            createdAt: 1,
-                        }
-                    },
-                ]
+                // pipeline: [
+                //     {
+                //         $lookup: {
+                //             from: "users",
+                //             localField: "reviewAuthor",
+                //             foreignField: "_id",
+                //             as: "reviewAuthor",
+                //             pipeline: [
+                //                 {
+                //                     $project: {
+                //                         _id: 1,
+                //                         profileImage: 1,
+                //                         userName: 1,
+                //                     }
+                //                 }
+                //             ]
+                //         }
+                //     },
+                //     {
+                //         $addFields: {
+                //             reviewAuthor: { $first: "$reviewAuthor" }
+                //         }
+                //     },
+                //     {
+                //         $project: {
+                //             _id: 1,
+                //             reviewTitle: 1,
+                //             reviewBody: 1,
+                //             reviewRating: 1,
+                //             reviewAuthor: 1,
+                //             reviewCount: 1,
+                //             createdAt: 1,
+                //         }
+                //     },
+                // ]
             }
         },
 

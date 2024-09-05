@@ -16,6 +16,11 @@ const productSchema = new Schema(
             ref: 'Category',
             default: null
         },
+        productReviews: {
+            type: Schema.Types.ObjectId,
+            ref: 'Review',
+            default: null
+        },
         productPrice: {
             type: Number,
             required: [true, 'Product price is required'],
@@ -49,7 +54,9 @@ const productSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'User',
             required: [true, 'Product owner is required']
-        }
+        },
+
+
     },
     {
         timestamps: true

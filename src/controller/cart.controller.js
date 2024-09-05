@@ -72,13 +72,79 @@ const addProductToCart = asyncHandler(async (req, res) => {
 
 
 const getUserCart = asyncHandler(async (req, res) => {
-    const cart = await Cart.findOne({ cartOwner: req.user._id }).populate("cartItems.product");
+    // const cart = await Cart.findOne({ cartOwner: req.user._id }).populate("cartItems.product");
+
+    const pipeline = [
+        {
+            $match: {
+                cartOwner: req.user._id
+            }
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "cartItems.product",
+                foreignField: "_id",
+                as: "productDetails",
+            }
+        },
+        {
+            $addFields: {
+                cartItems: {
+                    $map: {
+                        input: "$cartItems",
+                        as: "item",
+                        in: {
+                            product: {
+                                $arrayElemAt: [
+                                    {
+                                        $filter: {
+                                            input: "$productDetails",
+                                            as: "product",
+                                            cond: { $eq: ["$$product._id", "$$item.product"] }
+                                        }
+                                    },
+                                    0
+                                ]
+                            },
+                            quantity: "$$item.quantity"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $addFields: {
+                totalAmount: {
+                    $sum: {
+                        $map: {
+                            input: "$cartItems",
+                            as: "item",
+                            in: {
+                                $multiply: ["$$item.product.productPrice", "$$item.quantity"]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                cartItems: 1,
+                totalAmount: 1
+            }
+        }
+    ];
+
+
+    const cart = await Cart.aggregate(pipeline);
 
     if (!cart) {
         throw new ApiError(404, "Cart not found");
     }
 
-    return res.status(200).json(new ApiResponse(200, cart, "Cart retrieved successfully"));
+    return res.status(200).json(new ApiResponse(200, cart[0], "Cart retrieved successfully"));
 });
 
 
