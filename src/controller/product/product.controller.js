@@ -147,6 +147,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
                 productDescription: 1,
                 productPrice: 1,
                 productThumbnail: 1,
+                productImages: 1,
                 productReviewsCount: 1,
                 productAverageRating: 1,
                 categoryDetails: 1,
