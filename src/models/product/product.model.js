@@ -22,7 +22,7 @@ const productSchema = new Schema(
             default: null
         },
         productPrice: {
-            type: Number,
+            type: mongoose.Types.Decimal128,
             required: [true, 'Product price is required'],
             min: [0, 'Product price must be a positive number']
         },

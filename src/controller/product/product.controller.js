@@ -57,28 +57,32 @@ const addProduct = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, createProduct, "Product created successfully"));
 });
 
-
 const getAllProducts = asyncHandler(async (req, res) => {
     const {
         page = 1,
         limit = 10,
         q = "",
-        sortField = "createdAt",
-        sortOrder = "desc"
+        sortBy = "createdAt",
+        sortOrder = "asc",
+        priceRange = "all"
     } = req.query;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const pageSize = Math.max(parseInt(limit, 10) || 10, 1);
     const order = sortOrder.toLowerCase() === "asc" ? 1 : -1;
+    const price = priceRange.toLowerCase() === "all" ? { $gte: 0 } : { $gte: parseFloat(priceRange) };
     const query = q ? { productTitle: new RegExp(q, 'i') } : {};
-
+    const sort = sortBy ? { [sortBy]: order } : { createdAt: -1 };
+    const skip = (pageNumber - 1) * pageSize;
 
     const productsPipeline = [
         // FILTER PRODUCT
         {
-            $match: query
+            $match: {
+                ...query,
+                productPrice: price
+            }
         },
-
 
         // OWNER DETAILS
         {
@@ -106,8 +110,6 @@ const getAllProducts = asyncHandler(async (req, res) => {
             }
         },
 
-
-
         // USER LIKE STATUS
         {
             $lookup: {
@@ -119,7 +121,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
                             $expr: {
                                 $and: [
                                     { $eq: ["$product", "$$productId"] },
-                                    { $eq: ["$likedBy", req.user._id] }
+                                    { $eq: ["$likedBy", req.user?._id] }  // Use optional chaining in case req.user is undefined
                                 ]
                             }
                         }
@@ -136,7 +138,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
 
         // SORTING
         {
-            $sort: { [sortField]: order }
+            $sort: sort
         },
 
         // FINAL STRUCTURE
@@ -159,11 +161,11 @@ const getAllProducts = asyncHandler(async (req, res) => {
         },
 
         // PAGINATION
-        { $skip: (pageNumber - 1) * pageSize },
+        { $skip: skip },
         { $limit: pageSize }
     ];
 
-    const totalProducts = await Product.countDocuments(query);
+    const totalProducts = await Product.countDocuments({ ...query, productPrice: price });
     const totalPages = Math.ceil(totalProducts / pageSize);
 
     const products = await Product.aggregate(productsPipeline);
@@ -182,12 +184,15 @@ const getAllProducts = asyncHandler(async (req, res) => {
 });
 
 
+
+
 const getAllProductsAdmin = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, sortField = "createdAt", sortOrder = "desc" } = req.query;
+    const { page = 1, limit = 10, sortField = "createdAt", sortOrder = "desc", price = "all" } = req.query;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const pageSize = Math.max(parseInt(limit, 10) || 10, 1);
     const order = sortOrder.toLowerCase() === "asc" ? 1 : -1;
+    const priceRange = price.toLowerCase() === "all" ? { price: { $gte: 0 } } : { price: { $gte: 0, $lte: price } };
 
     const productsPipeline = [
         // CATEGORY DETAILS
